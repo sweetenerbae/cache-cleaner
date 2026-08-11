@@ -1,12 +1,12 @@
-import sys
 import os
 from datetime import datetime
-from typing import Dict, Callable
-from utils import is_admin, request_admin, BackupType
-from cleanup_logic import CleanupLogic
+from typing import Callable, Dict, List, Tuple
+
 from backup_system import BackupSystem
+from cleanup_logic import CleanupLogic
 from gui_builder import GUIBuilder
 from restore_window import RestoreWindow
+from utils import BackupType, get_all_adobe_paths, is_admin, request_admin
 
 
 class CacheCleanerApp:
@@ -18,40 +18,90 @@ class CacheCleanerApp:
 
     def log(self, text: str):
         try:
-            with open(self.log_file, "a", encoding="utf-8") as f:
+            with open(self.log_file, "a", encoding="utf-8") as log_file:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                f.write(f"[{timestamp}] {text}\n")
+                log_file.write(f"[{timestamp}] {text}\n")
         except Exception:
             pass
 
+    def collect_paths_to_clean(self, options: Dict) -> Dict[str, List[str]]:
+        path_groups: Dict[str, List[str]] = {}
+
+        if options["windows"]:
+            path_groups["Windows"] = [
+                os.getenv("TEMP"),
+                r"C:\Windows\Temp",
+                r"C:\Windows\Prefetch",
+                os.path.join(os.getenv("LOCALAPPDATA"), "Temp") if os.getenv("LOCALAPPDATA") else None,
+            ]
+
+        if options["adobe"]:
+            path_groups["Adobe"] = get_all_adobe_paths(options.get("adobe_folder"))
+
+        if options["discord"]:
+            app_data = os.getenv("APPDATA")
+            local_app_data = os.getenv("LOCALAPPDATA")
+            path_groups["Discord"] = [
+                os.path.join(app_data, "discord", "Cache") if app_data else None,
+                os.path.join(app_data, "discord", "Code Cache") if app_data else None,
+                os.path.join(app_data, "discord", "GPUCache") if app_data else None,
+                os.path.join(local_app_data, "Discord", "Cache") if local_app_data else None,
+            ]
+
+        enabled_browser_paths: List[str] = []
+        for browser_name, enabled in options["browsers"].items():
+            if enabled and browser_name in self.cleanup_logic.browser_paths:
+                enabled_browser_paths.extend(self.cleanup_logic.browser_paths[browser_name])
+
+        if enabled_browser_paths:
+            path_groups["Browsers"] = enabled_browser_paths
+
+        normalized_groups: Dict[str, List[str]] = {}
+        seen_paths = set()
+
+        for category, paths in path_groups.items():
+            category_paths: List[str] = []
+            for path in paths:
+                if not path or not os.path.exists(path):
+                    continue
+
+                normalized_path = os.path.normpath(path)
+                lowered_path = normalized_path.lower()
+                if lowered_path in seen_paths:
+                    continue
+
+                seen_paths.add(lowered_path)
+                category_paths.append(normalized_path)
+
+            if category_paths:
+                normalized_groups[category] = category_paths
+
+        return normalized_groups
+
+    def _build_scan_message(self, scan_results: List[Tuple[str, int]], category_totals: Dict[str, int]) -> str:
+        total_size = sum(size for _, size in scan_results)
+        lines = [f"Можно освободить: {self.cleanup_logic.format_size(total_size)}", ""]
+
+        if category_totals:
+            lines.append("По категориям:")
+            for category, size in category_totals.items():
+                lines.append(f"- {category}: {self.cleanup_logic.format_size(size)}")
+            lines.append("")
+
+        non_empty_results = [(path, size) for path, size in scan_results if size > 0]
+        if non_empty_results:
+            lines.append("Самые большие папки:")
+            for path, size in sorted(non_empty_results, key=lambda item: item[1], reverse=True)[:5]:
+                lines.append(f"- {self.cleanup_logic.format_size(size)} — {path}")
+        else:
+            lines.append("Подходящие папки найдены, но размер кэша сейчас почти нулевой.")
+
+        return "\n".join(lines)
+
     def perform_cleanup(self, options: Dict, progress_callback: Callable):
         try:
-            paths_to_clean = []
-
-            if options["windows"]:
-                paths_to_clean.extend([
-                    os.getenv("TEMP"),
-                    r"C:\Windows\Temp",
-                    r"C:\Windows\Prefetch"
-                ])
-
-            if options["adobe"]:
-                from utils import get_all_adobe_paths
-                adobe_paths = get_all_adobe_paths(options.get("adobe_folder"))
-                paths_to_clean.extend([p for p in adobe_paths if os.path.exists(p)])
-
-            if options["discord"]:
-                paths_to_clean.extend([
-                    os.path.join(os.getenv("APPDATA"), "discord", "Cache"),
-                    os.path.join(os.getenv("APPDATA"), "discord", "Code Cache")
-                ])
-
-            browser_paths = self.cleanup_logic.browser_paths
-            for browser_name, enabled in options["browsers"].items():
-                if enabled and browser_name in browser_paths:
-                    paths_to_clean.extend(browser_paths[browser_name])
-
-            paths_to_clean = [p for p in paths_to_clean if p and os.path.exists(p)]
+            path_groups = self.collect_paths_to_clean(options)
+            paths_to_clean = [path for paths in path_groups.values() for path in paths]
 
             if not paths_to_clean:
                 self.gui_builder.show_message("Внимание", "Не выбрано ни одной папки для очистки")
@@ -72,7 +122,7 @@ class CacheCleanerApp:
                     backup_name = self.backup_system.create_backup(
                         files_for_backup,
                         BackupType.SMART,
-                        "Автоматический бэкап"
+                        "Автоматический бэкап",
                     )
                     if backup_name:
                         progress_callback(30, f"Бэкап создан: {backup_name}")
@@ -83,7 +133,7 @@ class CacheCleanerApp:
             if options["windows"]:
                 total_freed += self.cleanup_logic.cleanup_windows_temp()
 
-            if options["adobe"] and options["adobe_folder"]:
+            if options["adobe"]:
                 total_freed += self.cleanup_logic.cleanup_adobe(options["adobe_folder"])
 
             if options["discord"]:
@@ -98,10 +148,36 @@ class CacheCleanerApp:
                 message += f"\nБэкап сохранен: {backup_name}"
 
             self.gui_builder.show_message("Готово", message)
+        except Exception as error:
+            self.gui_builder.show_message("Ошибка", f"Ошибка при очистке:\n{error}", True)
+            self.log(f"ERROR: {error}")
+        finally:
+            self.gui_builder.reset_progress()
 
-        except Exception as e:
-            self.gui_builder.show_message("Ошибка", f"Ошибка при очистке:\n{str(e)}", True)
-            self.log(f"ERROR: {str(e)}")
+    def perform_scan(self, options: Dict, progress_callback: Callable):
+        try:
+            path_groups = self.collect_paths_to_clean(options)
+            paths_to_scan = [path for paths in path_groups.values() for path in paths]
+
+            if not paths_to_scan:
+                self.gui_builder.show_message("Внимание", "Не найдено папок для сканирования")
+                return
+
+            progress_callback(20, "Сканирование кэша...")
+            scan_results = self.cleanup_logic.preview_paths(paths_to_scan)
+
+            category_totals: Dict[str, int] = {}
+            for category, paths in path_groups.items():
+                category_totals[category] = sum(size for path, size in scan_results if path in paths)
+
+            progress_callback(100, "Сканирование завершено")
+            self.gui_builder.show_message(
+                "Результат сканирования",
+                self._build_scan_message(scan_results, category_totals),
+            )
+        except Exception as error:
+            self.gui_builder.show_message("Ошибка", f"Ошибка при сканировании:\n{error}", True)
+            self.log(f"SCAN ERROR: {error}")
         finally:
             self.gui_builder.reset_progress()
 
@@ -115,7 +191,8 @@ class CacheCleanerApp:
 
         self.gui_builder = GUIBuilder(
             cleanup_callback=self.perform_cleanup,
-            restore_callback=self.open_restore_manager
+            restore_callback=self.open_restore_manager,
+            scan_callback=self.perform_scan,
         )
 
         root = self.gui_builder.setup_gui()

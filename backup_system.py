@@ -4,7 +4,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-from .utils import BackupInfo, FileInfo, BackupType
+from utils import BackupInfo, FileInfo, BackupType
 
 
 class BackupSystem:
