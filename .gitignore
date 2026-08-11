@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+.idea/
+.vscode/
+
+build/
+dist/
+*.spec.bak
+
+clear_cache_log.txt
+
+Thumbs.db
+Desktop.ini
