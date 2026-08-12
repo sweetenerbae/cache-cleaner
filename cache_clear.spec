@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['cache_clear.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],

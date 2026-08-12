@@ -171,9 +171,11 @@ class CacheCleanerApp:
                 category_totals[category] = sum(size for path, size in scan_results if path in paths)
 
             progress_callback(100, "Сканирование завершено")
-            self.gui_builder.show_message(
+            self.gui_builder.show_scan_results(
                 "Результат сканирования",
                 self._build_scan_message(scan_results, category_totals),
+                category_totals,
+                sum(size for _, size in scan_results),
             )
         except Exception as error:
             self.gui_builder.show_message("Ошибка", f"Ошибка при сканировании:\n{error}", True)

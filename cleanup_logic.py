@@ -1,5 +1,4 @@
 import os
-import subprocess
 from typing import Dict, List, Optional, Tuple
 
 from utils import calculate_folder_size, get_all_adobe_paths, get_browser_paths
@@ -71,11 +70,6 @@ class CleanupLogic:
 
         for path in filter(None, temp_paths):
             freed += self.clear_directory(path)
-
-        try:
-            subprocess.run(["wsreset.exe"], shell=False, capture_output=True, check=False)
-        except Exception:
-            pass
 
         return freed
 
