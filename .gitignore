@@ -15,7 +15,17 @@ release/
 
 assets/*_source.png
 
-clear_cache_log.txt
+# Runtime logs
+*.log
+*_log.txt
+logs/
+
+# Local backup data
+cache_backups/
+backups/
+backup_history.json
+backup_*.json
+backup_*.zip
 
 Thumbs.db
 Desktop.ini
