@@ -45,12 +45,14 @@ class GUIBuilder:
 
         self.root = ctk.CTk(fg_color=self.BG)
         self.root.title("Cache Cleaner Pro")
-        self.root.geometry("980x700")
-        self.root.minsize(900, 650)
+        self.root.geometry("980x720")
+        self.root.minsize(620, 520)
         self.root.resizable(True, True)
 
-        self._center_window(980, 700)
+        self._center_window(980, 720)
         self._create_widgets()
+        self.root.bind("<Configure>", self._on_root_configure)
+        self.root.after_idle(lambda: self._apply_responsive_layout(self.root.winfo_width()))
         return self.root
 
     def _center_window(self, width: int, height: int):
@@ -71,14 +73,19 @@ class GUIBuilder:
 
         self._create_header()
 
-        content = ctk.CTkFrame(self.root, fg_color="transparent")
-        content.grid(row=1, column=0, sticky="nsew", padx=24, pady=(0, 16))
-        content.grid_columnconfigure(0, weight=11, uniform="content")
-        content.grid_columnconfigure(1, weight=9, uniform="content")
-        content.grid_rowconfigure(0, weight=1)
+        self.content = ctk.CTkScrollableFrame(
+            self.root,
+            fg_color="transparent",
+            corner_radius=0,
+            scrollbar_button_color=self.BORDER,
+            scrollbar_button_hover_color=self.PURPLE,
+        )
+        self.content.grid(row=1, column=0, sticky="nsew", padx=(24, 14), pady=(0, 14))
+        self.content.grid_columnconfigure(0, weight=11, uniform="content")
+        self.content.grid_columnconfigure(1, weight=9, uniform="content")
 
-        self._create_options_panel(content)
-        self._create_dashboard(content)
+        self._create_options_panel(self.content)
+        self._create_dashboard(self.content)
         self._create_action_bar()
 
     def _create_header(self):
@@ -130,6 +137,7 @@ class GUIBuilder:
 
     def _create_options_panel(self, parent):
         panel = self._card(parent)
+        self.options_panel = panel
         panel.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         panel.grid_columnconfigure(0, weight=1)
 
@@ -216,6 +224,7 @@ class GUIBuilder:
 
     def _create_dashboard(self, parent):
         panel = self._card(parent)
+        self.dashboard_panel = panel
         panel.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
         panel.grid_columnconfigure(0, weight=1)
         panel.grid_rowconfigure(3, weight=1)
@@ -289,12 +298,13 @@ class GUIBuilder:
         bar.grid_columnconfigure(0, weight=1)
         bar.grid_propagate(False)
 
-        ctk.CTkLabel(
+        self.action_hint = ctk.CTkLabel(
             bar,
             text="Сначала проверьте объём — затем очистите",
             text_color=self.MUTED,
             font=ctk.CTkFont(size=12),
-        ).grid(row=0, column=0, sticky="w", padx=18)
+        )
+        self.action_hint.grid(row=0, column=0, sticky="w", padx=18)
 
         self.btn_restore = ctk.CTkButton(
             bar,
@@ -336,6 +346,37 @@ class GUIBuilder:
         self.btn_cleanup.grid(row=0, column=3, padx=(0, 18), pady=18)
 
         self.control_widgets.extend([self.btn_restore, self.btn_scan, self.btn_cleanup])
+
+    def _on_root_configure(self, event):
+        if event.widget is self.root:
+            self._apply_responsive_layout(event.width)
+
+    def _apply_responsive_layout(self, width: int):
+        mode = "compact" if width < 860 else "desktop"
+        if getattr(self, "_layout_mode", None) == mode:
+            return
+        self._layout_mode = mode
+
+        if mode == "compact":
+            self.content.grid_columnconfigure(0, weight=1, uniform="")
+            self.content.grid_columnconfigure(1, weight=0, uniform="")
+            self.options_panel.grid_configure(row=0, column=0, padx=0, pady=(0, 8))
+            self.dashboard_panel.grid_configure(row=1, column=0, padx=0, pady=(8, 0))
+
+            self.action_hint.grid_remove()
+            self.btn_restore.configure(width=105)
+            self.btn_scan.configure(width=140)
+            self.btn_cleanup.configure(width=165)
+        else:
+            self.content.grid_columnconfigure(0, weight=11, uniform="content")
+            self.content.grid_columnconfigure(1, weight=9, uniform="content")
+            self.options_panel.grid_configure(row=0, column=0, padx=(0, 8), pady=0)
+            self.dashboard_panel.grid_configure(row=0, column=1, padx=(8, 0), pady=0)
+
+            self.action_hint.grid()
+            self.btn_restore.configure(width=118)
+            self.btn_scan.configure(width=156)
+            self.btn_cleanup.configure(width=178)
 
     def _card(self, parent):
         return ctk.CTkFrame(
