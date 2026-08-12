@@ -1,10 +1,18 @@
 import os
+import sys
 import threading
 import tkinter as tk
+from pathlib import Path
 from tkinter import filedialog, messagebox
 from typing import Callable, Dict, Optional
 
 import customtkinter as ctk
+from PIL import Image
+
+
+def resource_path(relative_path: str) -> str:
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return str(base_path / relative_path)
 
 
 class GUIBuilder:
@@ -45,6 +53,10 @@ class GUIBuilder:
 
         self.root = ctk.CTk(fg_color=self.BG)
         self.root.title("Cache Cleaner Pro")
+        try:
+            self.root.iconbitmap(resource_path("assets/cache_cleaner.ico"))
+        except (OSError, tk.TclError):
+            pass
         self.root.geometry("980x720")
         self.root.minsize(620, 520)
         self.root.resizable(True, True)
@@ -99,16 +111,26 @@ class GUIBuilder:
             width=58,
             height=58,
             corner_radius=18,
-            fg_color=self.PURPLE,
+            fg_color=self.SURFACE_ALT,
+            border_width=1,
+            border_color=self.BORDER,
         )
         logo.grid(row=0, column=0, rowspan=2, padx=(0, 14), pady=8)
         logo.grid_propagate(False)
-        ctk.CTkLabel(
-            logo,
-            text="C",
-            text_color="white",
-            font=ctk.CTkFont(size=28, weight="bold"),
-        ).place(relx=0.5, rely=0.5, anchor="center")
+        try:
+            logo_source = Image.open(resource_path("assets/cache_cleaner_logo.png"))
+            self.logo_image = ctk.CTkImage(
+                light_image=logo_source,
+                dark_image=logo_source,
+                size=(50, 50),
+            )
+            ctk.CTkLabel(logo, text="", image=self.logo_image).place(relx=0.5, rely=0.5, anchor="center")
+        except OSError:
+            ctk.CTkLabel(logo, text="✦", text_color=self.CYAN, font=ctk.CTkFont(size=25)).place(
+                relx=0.5,
+                rely=0.5,
+                anchor="center",
+            )
 
         ctk.CTkLabel(
             header,
@@ -158,9 +180,9 @@ class GUIBuilder:
         categories.grid(row=2, column=0, sticky="ew", padx=14)
         categories.grid_columnconfigure((0, 1), weight=1, uniform="category")
 
-        self._category_tile(categories, 0, 0, "▣", "Windows", "Временные файлы", self.var_windows, self.PURPLE)
-        self._category_tile(categories, 0, 1, "A", "Adobe", "Media Cache", self.var_adobe, "#FF8A5B")
-        self._category_tile(categories, 1, 0, "D", "Discord", "Cache и GPUCache", self.var_discord, "#8C7CFF")
+        self._category_tile(categories, 0, 0, "Windows", "Временные файлы", self.var_windows, self.PURPLE)
+        self._category_tile(categories, 0, 1, "Adobe", "Media Cache", self.var_adobe, "#FF8A5B")
+        self._category_tile(categories, 1, 0, "Discord", "Cache и GPUCache", self.var_discord, "#8C7CFF")
 
         backup_tile = ctk.CTkFrame(
             categories,
@@ -405,7 +427,7 @@ class GUIBuilder:
         self.control_widgets.append(checkbox)
         return checkbox
 
-    def _category_tile(self, parent, row, column, icon, title, subtitle, variable, accent):
+    def _category_tile(self, parent, row, column, title, subtitle, variable, accent):
         tile = ctk.CTkFrame(
             parent,
             fg_color=self.SURFACE_ALT,
@@ -417,20 +439,17 @@ class GUIBuilder:
         tile.grid(row=row, column=column, sticky="nsew", padx=5, pady=5)
         tile.grid_propagate(False)
 
-        icon_label = ctk.CTkLabel(
+        accent_line = ctk.CTkFrame(
             tile,
-            text=icon,
-            width=36,
-            height=36,
-            corner_radius=11,
+            width=4,
+            height=38,
+            corner_radius=2,
             fg_color=accent,
-            text_color="white",
-            font=ctk.CTkFont(size=15, weight="bold"),
         )
-        icon_label.place(x=12, rely=0.5, anchor="w")
+        accent_line.place(x=14, rely=0.5, anchor="w")
 
         checkbox = self._checkbox(tile, f"{title}\n{subtitle}", variable, accent)
-        checkbox.place(x=58, rely=0.5, anchor="w")
+        checkbox.place(x=28, rely=0.5, anchor="w")
 
     def _create_browsers_section(self, parent):
         browser_box = ctk.CTkFrame(parent, fg_color=self.SURFACE_ALT, corner_radius=14)

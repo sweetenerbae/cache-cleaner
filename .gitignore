@@ -9,7 +9,11 @@ __pycache__/
 
 build/
 dist/
+build-release/
+release/
 *.spec.bak
+
+assets/*_source.png
 
 clear_cache_log.txt
 

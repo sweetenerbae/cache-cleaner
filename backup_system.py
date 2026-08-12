@@ -1,104 +1,114 @@
-import os
 import json
+import os
+import shutil
+import sys
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-from utils import BackupInfo, FileInfo, BackupType
+from typing import Dict, List, Optional, Tuple
+
+from utils import BackupInfo, BackupType, FileInfo
 
 
 class BackupSystem:
-    def __init__(self, backup_dir: str = "cache_backups"):
-        self.backup_dir = Path(backup_dir)
-        self.backup_dir.mkdir(exist_ok=True)
+    def __init__(self, backup_dir: Optional[str] = None):
+        if backup_dir:
+            self.backup_dir = Path(backup_dir)
+        else:
+            local_data = os.getenv("LOCALAPPDATA")
+            base_dir = Path(local_data) if local_data else Path.home() / "AppData" / "Local"
+            self.backup_dir = base_dir / "CacheCleaner" / "backups"
+
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        self._migrate_legacy_backups()
         self.backup_history: List[BackupInfo] = []
         self.load_history()
 
-    # backup history loading
+    def _migrate_legacy_backups(self):
+        """Copy backups made by older versions from their working directory."""
+        candidates = [Path.cwd() / "cache_backups"]
+        try:
+            executable_dir = Path(sys.executable).resolve().parent
+            candidates.extend(
+                [
+                    executable_dir / "cache_backups",
+                    executable_dir.parent / "cache_backups",
+                ]
+            )
+        except OSError:
+            pass
+
+        for legacy_dir in candidates:
+            try:
+                if not legacy_dir.exists() or legacy_dir.resolve() == self.backup_dir.resolve():
+                    continue
+                for source in legacy_dir.glob("backup_*.*"):
+                    if source.suffix.lower() not in {".json", ".zip"}:
+                        continue
+                    target = self.backup_dir / source.name
+                    if not target.exists():
+                        shutil.copy2(source, target)
+            except (OSError, PermissionError):
+                continue
+
     def load_history(self):
         history_file = self.backup_dir / "backup_history.json"
-        if history_file.exists():
-            try:
-                with open(history_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.backup_history = [
-                        BackupInfo.from_dict(item) for item in data
-                    ]
-            except Exception:
-                self.backup_history = []
+        if not history_file.exists():
+            return
+        try:
+            with history_file.open("r", encoding="utf-8") as file:
+                self.backup_history = [BackupInfo.from_dict(item) for item in json.load(file)]
+        except (OSError, ValueError, KeyError, TypeError):
+            self.backup_history = []
 
-    # save backup
     def save_history(self):
         history_file = self.backup_dir / "backup_history.json"
-        try:
-            with open(history_file, 'w', encoding='utf-8') as f:
-                json.dump(
-                    [backup.to_dict() for backup in self.backup_history],
-                    f,
-                    indent=2,
-                    ensure_ascii=False
-                )
-        except Exception as e:
-            print(f"Error saving history: {e}")
+        temporary_file = history_file.with_suffix(".tmp")
+        with temporary_file.open("w", encoding="utf-8") as file:
+            json.dump(
+                [backup.to_dict() for backup in self.backup_history],
+                file,
+                indent=2,
+                ensure_ascii=False,
+            )
+        os.replace(temporary_file, history_file)
 
-    # create backup
     def create_backup(
-            self,
-            files_to_backup: List[str],
-            backup_type: BackupType = BackupType.SMART,
-            description: str = ""
+        self,
+        files_to_backup: List[str],
+        backup_type: BackupType = BackupType.SMART,
+        description: str = "",
     ) -> Optional[str]:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        backup_name = f"backup_{timestamp}"
+        zip_path = self.backup_dir / f"{backup_name}.zip"
+        meta_file = self.backup_dir / f"{backup_name}.json"
+        files_info: Dict[str, FileInfo] = {}
+        total_size = 0
+
+        unique_files = list(dict.fromkeys(os.path.normpath(path) for path in files_to_backup))
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_name = f"backup_{timestamp}"
-
-            files_info = {}
-            total_size = 0
-
-            files_to_copy = []
-            if backup_type == BackupType.FULL:
-                files_to_copy = files_to_backup
-            elif backup_type == BackupType.SMART:
-                for file_path in files_to_backup:
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+                for index, file_path in enumerate(unique_files):
                     try:
-                        if os.path.getsize(file_path) < 50 * 1024 * 1024:  # 50MB
-                            files_to_copy.append(file_path)
-                    except Exception:
-                        continue
-
-            # zip file create
-            zip_path = self.backup_dir / f"{backup_name}.zip"
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for file_path in files_to_copy:
-                    try:
-                        if os.path.exists(file_path):
-                            arcname = os.path.relpath(file_path, '/')
-                            zipf.write(file_path, arcname)
-
-                            stat = os.stat(file_path)
-                            files_info[file_path] = FileInfo(
-                                path=file_path,
-                                size=stat.st_size,
-                                modified_time=stat.st_mtime,
-                                backup_path=str(self.backup_dir / os.path.basename(file_path))
-                            )
-                            total_size += stat.st_size
-                    except Exception:
-                        continue
-
-            for file_path in set(files_to_backup) - set(files_to_copy):
-                try:
-                    if os.path.exists(file_path):
+                        if not os.path.isfile(file_path):
+                            continue
                         stat = os.stat(file_path)
+                        archive_name = f"files/{index:08d}"
+                        archive.write(file_path, archive_name)
                         files_info[file_path] = FileInfo(
                             path=file_path,
                             size=stat.st_size,
                             modified_time=stat.st_mtime,
-                            backup_path=None
+                            backup_path=archive_name,
                         )
                         total_size += stat.st_size
-                except Exception:
-                    continue
+                    except (OSError, PermissionError):
+                        continue
+
+            if not files_info:
+                zip_path.unlink(missing_ok=True)
+                return None
 
             backup_info = BackupInfo(
                 timestamp=timestamp,
@@ -106,117 +116,123 @@ class BackupSystem:
                 file_count=len(files_info),
                 backup_type=backup_type.value,
                 description=description,
-                files=files_info
+                files=files_info,
             )
-
-            meta_file = self.backup_dir / f"{backup_name}.json"
-            with open(meta_file, 'w', encoding='utf-8') as f:
-                json.dump(backup_info.to_dict(), f, indent=2, ensure_ascii=False)
+            with meta_file.open("w", encoding="utf-8") as file:
+                json.dump(backup_info.to_dict(), file, indent=2, ensure_ascii=False)
 
             self.backup_history.append(backup_info)
             self.save_history()
-
             return backup_name
-
-        except Exception as e:
-            print(f"Backup creation error: {e}")
+        except (OSError, PermissionError, zipfile.BadZipFile):
+            zip_path.unlink(missing_ok=True)
+            meta_file.unlink(missing_ok=True)
             return None
 
     def get_available_backups(self) -> List[Dict]:
         backups = []
         for backup_file in self.backup_dir.glob("backup_*.json"):
             try:
-                with open(backup_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    backups.append({
+                with backup_file.open("r", encoding="utf-8") as file:
+                    data = json.load(file)
+                backups.append(
+                    {
                         "name": backup_file.stem,
                         "timestamp": data["timestamp"],
-                        "file_count": data["file_count"],
-                        "total_size": data["total_size"],
-                        "description": data["description"]
-                    })
-            except Exception:
+                        "file_count": int(data["file_count"]),
+                        "total_size": int(data["total_size"]),
+                        "description": data.get("description", ""),
+                        "archive_exists": (self.backup_dir / f"{backup_file.stem}.zip").exists(),
+                    }
+                )
+            except (OSError, ValueError, KeyError, TypeError):
                 continue
-
-        backups.sort(key=lambda x: x["timestamp"], reverse=True)
-        return backups
+        return sorted(backups, key=lambda item: item["timestamp"], reverse=True)
 
     def load_backup(self, backup_name: str) -> Optional[BackupInfo]:
         backup_file = self.backup_dir / f"{backup_name}.json"
-        if backup_file.exists():
-            try:
-                with open(backup_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                return BackupInfo.from_dict(data)
-            except Exception:
-                return None
-        return None
+        try:
+            with backup_file.open("r", encoding="utf-8") as file:
+                return BackupInfo.from_dict(json.load(file))
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+
+    @staticmethod
+    def _find_archive_member(archive: zipfile.ZipFile, file_info: FileInfo) -> Optional[str]:
+        members = archive.namelist()
+        normalized = {name.replace("\\", "/").lower(): name for name in members}
+
+        if file_info.backup_path:
+            saved_name = file_info.backup_path.replace("\\", "/").lower()
+            if saved_name in normalized:
+                return normalized[saved_name]
+
+        _, path_without_drive = os.path.splitdrive(file_info.path)
+        legacy_name = path_without_drive.lstrip("\\/").replace("\\", "/").lower()
+        if legacy_name in normalized:
+            return normalized[legacy_name]
+
+        basename = os.path.basename(file_info.path).lower()
+        basename_matches = [name for name in members if os.path.basename(name).lower() == basename]
+        return basename_matches[0] if len(basename_matches) == 1 else None
 
     def restore_files(
-            self,
-            backup_name: str,
-            files_to_restore: Optional[List[str]] = None
+        self,
+        backup_name: str,
+        files_to_restore: Optional[List[str]] = None,
     ) -> Tuple[int, int, List[str]]:
         backup_info = self.load_backup(backup_name)
         if not backup_info:
-            return 0, 0, []
+            return 0, 0, ["Не удалось прочитать описание бэкапа"]
 
+        selected_files = [
+            info
+            for info in backup_info.files.values()
+            if not files_to_restore or info.path in files_to_restore
+        ]
+        total_files = len(selected_files)
         restored_count = 0
-        total_files = len(backup_info.files)
-        failed_files = []
-
+        failed_files: List[str] = []
         zip_path = self.backup_dir / f"{backup_name}.zip"
-        has_zip = zip_path.exists()
 
-        if has_zip:
-            with zipfile.ZipFile(zip_path, 'r') as zipf:
-                for file_info in backup_info.files.values():
-                    if files_to_restore and file_info.path not in files_to_restore:
+        if not zip_path.exists():
+            return 0, total_files, ["Архив бэкапа не найден"]
+
+        try:
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                for file_info in selected_files:
+                    archive_member = self._find_archive_member(archive, file_info)
+                    if not archive_member:
+                        failed_files.append(f"{file_info.path}: файла нет в архиве")
                         continue
 
+                    target = Path(file_info.path)
+                    temporary = target.with_name(target.name + ".cachecleaner-restore")
                     try:
-                        os.makedirs(os.path.dirname(file_info.path), exist_ok=True)
-                        arcname = os.path.relpath(file_info.path, '/')
-                        zipf.extract(arcname, os.path.dirname(file_info.path))
-                        os.utime(file_info.path,
-                                 (file_info.modified_time, file_info.modified_time))
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with archive.open(archive_member, "r") as source, temporary.open("wb") as destination:
+                            shutil.copyfileobj(source, destination, length=1024 * 1024)
+                        os.replace(temporary, target)
+                        os.utime(target, (file_info.modified_time, file_info.modified_time))
                         restored_count += 1
-                    except Exception as e:
-                        failed_files.append(f"{file_info.path}: {str(e)}")
-        else:
-            for file_info in backup_info.files.values():
-                if files_to_restore and file_info.path not in files_to_restore:
-                    continue
-
-                try:
-                    os.makedirs(os.path.dirname(file_info.path), exist_ok=True)
-                    with open(file_info.path, 'wb') as f:
-                        f.seek(file_info.size - 1)
-                        f.write(b'\0')
-                    os.utime(file_info.path,
-                             (file_info.modified_time, file_info.modified_time))
-                    restored_count += 1
-                except Exception as e:
-                    failed_files.append(f"{file_info.path}: {str(e)}")
+                    except (OSError, PermissionError, KeyError) as error:
+                        temporary.unlink(missing_ok=True)
+                        failed_files.append(f"{file_info.path}: {error}")
+        except (OSError, PermissionError, zipfile.BadZipFile) as error:
+            return 0, total_files, [f"Не удалось открыть архив: {error}"]
 
         return restored_count, total_files, failed_files
 
     def delete_backup(self, backup_name: str) -> bool:
         try:
-            json_file = self.backup_dir / f"{backup_name}.json"
-            if json_file.exists():
-                json_file.unlink()
-
-            zip_file = self.backup_dir / f"{backup_name}.zip"
-            if zip_file.exists():
-                zip_file.unlink()
-
+            (self.backup_dir / f"{backup_name}.json").unlink(missing_ok=True)
+            (self.backup_dir / f"{backup_name}.zip").unlink(missing_ok=True)
             self.backup_history = [
-                b for b in self.backup_history
-                if b.timestamp != backup_name.replace('backup_', '')
+                backup
+                for backup in self.backup_history
+                if backup.timestamp != backup_name.replace("backup_", "")
             ]
             self.save_history()
-
             return True
-        except Exception:
+        except (OSError, PermissionError):
             return False

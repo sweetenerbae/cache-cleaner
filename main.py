@@ -184,7 +184,15 @@ class CacheCleanerApp:
             self.gui_builder.reset_progress()
 
     def open_restore_manager(self):
-        RestoreWindow(self.gui_builder.root, self.backup_system)
+        try:
+            RestoreWindow(self.gui_builder.root, self.backup_system)
+        except Exception as error:
+            self.log(f"BACKUP WINDOW ERROR: {error}")
+            self.gui_builder.show_message(
+                "Ошибка бэкапа",
+                f"Не удалось открыть центр восстановления:\n{error}",
+                True,
+            )
 
     def run(self):
         if not is_admin():
