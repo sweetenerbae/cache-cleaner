@@ -127,7 +127,8 @@ class CacheCleanerApp:
                     if backup_name:
                         progress_callback(30, f"Бэкап создан: {backup_name}")
 
-            total_freed = 0.0
+            total_freed = 0
+            self.cleanup_logic.reset_cleanup_stats()
             progress_callback(50, "Очистка файлов...")
 
             if options["windows"]:
@@ -143,7 +144,12 @@ class CacheCleanerApp:
 
             progress_callback(100, "Очистка завершена")
 
-            message = f"Очищено: {total_freed:.2f} GB"
+            message = f"Очищено: {self.cleanup_logic.format_size(total_freed)}"
+            if self.cleanup_logic.skipped_files:
+                message += (
+                    f"\nПропущено занятых файлов: {self.cleanup_logic.skipped_files}"
+                    f" ({self.cleanup_logic.format_size(self.cleanup_logic.skipped_bytes)})"
+                )
             if backup_name:
                 message += f"\nБэкап сохранен: {backup_name}"
 
