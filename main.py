@@ -142,9 +142,24 @@ class CacheCleanerApp:
 
             total_freed += self.cleanup_logic.cleanup_browsers(options["browsers"])
 
+            progress_callback(90, "Проверяем результат...")
+            remaining_results = self.cleanup_logic.preview_paths(paths_to_clean)
+            remaining_by_category: Dict[str, int] = {}
+            for category, paths in path_groups.items():
+                remaining_by_category[category] = sum(
+                    size for path, size in remaining_results if path in paths
+                )
+            remaining_total = sum(size for _, size in remaining_results)
+            self.gui_builder.update_dashboard(
+                remaining_by_category,
+                remaining_total,
+                "осталось после очистки",
+            )
+
             progress_callback(100, "Очистка завершена")
 
             message = f"Очищено: {self.cleanup_logic.format_size(total_freed)}"
+            message += f"\nОсталось: {self.cleanup_logic.format_size(remaining_total)}"
             if self.cleanup_logic.skipped_files:
                 message += (
                     f"\nПропущено занятых файлов: {self.cleanup_logic.skipped_files}"

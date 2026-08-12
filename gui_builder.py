@@ -637,13 +637,26 @@ class GUIBuilder:
                 total_size,
             )
 
-    def _show_scan_results_window(self, title, summary, category_totals, total_size):
+    def update_dashboard(self, category_totals=None, total_size: int = 0, hint: str = ""):
+        if self.root:
+            self.root.after(
+                0,
+                self._apply_dashboard_update,
+                category_totals or {},
+                total_size,
+                hint,
+            )
+
+    def _apply_dashboard_update(self, category_totals, total_size, hint):
         self.last_scan_total = total_size
         self.last_scan_categories = category_totals
         self.lbl_metric.configure(text=self._format_size(total_size))
-        self.lbl_metric_hint.configure(text="можно безопасно освободить")
+        self.lbl_metric_hint.configure(text=hint or "текущий объём кэша")
         self._draw_donut(category_totals)
         self._render_legend(category_totals)
+
+    def _show_scan_results_window(self, title, summary, category_totals, total_size):
+        self._apply_dashboard_update(category_totals, total_size, "можно безопасно освободить")
 
         window = ctk.CTkToplevel(self.root, fg_color=self.BG)
         window.title(title)
