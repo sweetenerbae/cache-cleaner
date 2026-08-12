@@ -92,7 +92,7 @@ class GUIBuilder:
             scrollbar_button_color=self.BORDER,
             scrollbar_button_hover_color=self.PURPLE,
         )
-        self.content.grid(row=1, column=0, sticky="nsew", padx=(24, 14), pady=(0, 14))
+        self.content.grid(row=1, column=0, sticky="nsew", padx=(24, 14), pady=(0, 8))
         self.content.grid_columnconfigure(0, weight=11, uniform="content")
         self.content.grid_columnconfigure(1, weight=9, uniform="content")
 
@@ -101,8 +101,8 @@ class GUIBuilder:
         self._create_action_bar()
 
     def _create_header(self):
-        header = ctk.CTkFrame(self.root, height=94, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=24, pady=(18, 12))
+        header = ctk.CTkFrame(self.root, height=76, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=24, pady=(10, 8))
         header.grid_columnconfigure(1, weight=1)
         header.grid_propagate(False)
 
@@ -115,7 +115,7 @@ class GUIBuilder:
             border_width=1,
             border_color=self.BORDER,
         )
-        logo.grid(row=0, column=0, rowspan=2, padx=(0, 14), pady=8)
+        logo.grid(row=0, column=0, rowspan=2, padx=(0, 14), pady=7)
         logo.grid_propagate(False)
         try:
             logo_source = Image.open(resource_path("assets/cache_cleaner_logo.png"))
@@ -275,7 +275,7 @@ class GUIBuilder:
         self.chart = tk.Canvas(
             panel,
             width=260,
-            height=260,
+            height=225,
             bg=self.SURFACE,
             highlightthickness=0,
         )
@@ -310,13 +310,13 @@ class GUIBuilder:
     def _create_action_bar(self):
         bar = ctk.CTkFrame(
             self.root,
-            height=82,
+            height=74,
             fg_color=self.SURFACE,
             corner_radius=18,
             border_width=1,
             border_color=self.BORDER,
         )
-        bar.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 20))
+        bar.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 12))
         bar.grid_columnconfigure(0, weight=1)
         bar.grid_propagate(False)
 
@@ -338,7 +338,7 @@ class GUIBuilder:
             fg_color=self.BORDER,
             hover_color="#303A52",
         )
-        self.btn_restore.grid(row=0, column=1, padx=(8, 0), pady=18)
+        self.btn_restore.grid(row=0, column=1, padx=(8, 0), pady=14)
 
         self.btn_scan = ctk.CTkButton(
             bar,
@@ -352,7 +352,7 @@ class GUIBuilder:
             text_color=self.CYAN,
             font=ctk.CTkFont(size=13, weight="bold"),
         )
-        self.btn_scan.grid(row=0, column=2, padx=10, pady=18)
+        self.btn_scan.grid(row=0, column=2, padx=10, pady=14)
 
         self.btn_cleanup = ctk.CTkButton(
             bar,
@@ -365,7 +365,7 @@ class GUIBuilder:
             hover_color=self.PURPLE_HOVER,
             font=ctk.CTkFont(size=13, weight="bold"),
         )
-        self.btn_cleanup.grid(row=0, column=3, padx=(0, 18), pady=18)
+        self.btn_cleanup.grid(row=0, column=3, padx=(0, 18), pady=14)
 
         self.control_widgets.extend([self.btn_restore, self.btn_scan, self.btn_cleanup])
 
