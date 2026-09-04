@@ -15,7 +15,22 @@
 
 ## Интерфейс
 
-![Результат очистки в Cache Cleaner](docs/images/cache-cleaner-cleanup-result.png)
+### Главный экран
+
+![Главный экран Cache Cleaner с диаграммой](docs/images/cache-cleaner-dashboard.png)
+
+<details>
+  <summary><strong>Другие скриншоты</strong></summary>
+  <br>
+
+  **Центр создания и восстановления бэкапов**
+
+  ![Центр восстановления Cache Cleaner](docs/images/cache-cleaner-backups.png)
+
+  **Результат очистки**
+
+  ![Результат очистки в Cache Cleaner](docs/images/cache-cleaner-cleanup-result.png)
+</details>
 
 ## Возможности
 

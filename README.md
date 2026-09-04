@@ -15,7 +15,22 @@
 
 ## Preview
 
-![Cache Cleaner cleanup result](docs/images/cache-cleaner-cleanup-result.png)
+### Main dashboard
+
+![Cache Cleaner dashboard with storage chart](docs/images/cache-cleaner-dashboard.png)
+
+<details>
+  <summary><strong>More screenshots</strong></summary>
+  <br>
+
+  **Backup and recovery center**
+
+  ![Cache Cleaner backup and recovery center](docs/images/cache-cleaner-backups.png)
+
+  **Cleanup result**
+
+  ![Cache Cleaner cleanup result](docs/images/cache-cleaner-cleanup-result.png)
+</details>
 
 ## Features
 
