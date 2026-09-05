@@ -7,6 +7,7 @@
 
   [![Платформа](https://img.shields.io/badge/платформа-Windows-1674EA?style=flat-square&logo=windows11)](https://www.microsoft.com/windows)
   [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+  [![Лицензия](https://img.shields.io/badge/лицензия-MIT-32D6C9?style=flat-square)](LICENSE)
 
   [English](README.md) · [Русский](README_RU.md) · [Скачать EXE](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe)
 </div>
@@ -109,3 +110,7 @@ utils.py             Пути Windows и общие модели данных
 ## Автор
 
 Разработчик — [sweetenerbae](https://github.com/sweetenerbae).
+
+## Лицензия
+
+Проект распространяется по условиям [лицензии MIT](LICENSE).

@@ -7,6 +7,7 @@
 
   [![Platform](https://img.shields.io/badge/platform-Windows-1674EA?style=flat-square&logo=windows11)](https://www.microsoft.com/windows)
   [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+  [![License](https://img.shields.io/badge/license-MIT-32D6C9?style=flat-square)](LICENSE)
 
   [English](README.md) · [Русский](README_RU.md) · [Download EXE](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe)
 </div>
@@ -109,3 +110,7 @@ utils.py             Windows paths and shared data models
 ## Author
 
 Created by [sweetenerbae](https://github.com/sweetenerbae).
+
+## License
+
+Distributed under the [MIT License](LICENSE).
