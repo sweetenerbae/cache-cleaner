@@ -121,3 +121,5 @@ Created by [sweetenerbae](https://github.com/sweetenerbae).
 ## License
 
 Distributed under the [MIT License](LICENSE).
+
+Third-party brand and interface icon notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

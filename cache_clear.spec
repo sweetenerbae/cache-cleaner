@@ -8,6 +8,7 @@ a = Analysis(
     datas=[
         ('assets/cache_cleaner_logo.png', 'assets'),
         ('assets/cache_cleaner.ico', 'assets'),
+        ('assets/brand-icons', 'assets/brand-icons'),
     ],
     hiddenimports=[],
     hookspath=[],

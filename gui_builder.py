@@ -58,6 +58,7 @@ class GUIBuilder:
         self.control_widgets = []
         self.last_scan_total = 0
         self.last_scan_categories: Dict[str, int] = {}
+        self.brand_images: Dict[tuple, ctk.CTkImage] = {}
 
     def setup_gui(self) -> ctk.CTk:
         ctk.set_appearance_mode("dark")
@@ -193,10 +194,10 @@ class GUIBuilder:
         categories.grid(row=2, column=0, sticky="ew", padx=17)
         categories.grid_columnconfigure(0, weight=1)
 
-        self._category_tile(categories, 0, 0, "Windows", "Временные файлы системы", self.var_windows, self.PURPLE)
-        self._category_tile(categories, 1, 0, "Adobe", "Media Cache и превью", self.var_adobe, "#F2A365")
-        self._category_tile(categories, 2, 0, "Discord", "Cache, Code Cache и GPUCache", self.var_discord, "#A68AF0")
-        self._category_tile(categories, 3, 0, "Корзина", "Безвозвратное удаление содержимого", self.var_recycle, self.RED)
+        self._category_tile(categories, 0, 0, "Windows", "Временные файлы системы", self.var_windows, self.PURPLE, "windows")
+        self._category_tile(categories, 1, 0, "Adobe", "Media Cache и превью", self.var_adobe, "#F2A365", "adobe")
+        self._category_tile(categories, 2, 0, "Discord", "Cache, Code Cache и GPUCache", self.var_discord, "#A68AF0", "discord")
+        self._category_tile(categories, 3, 0, "Корзина", "Безвозвратное удаление содержимого", self.var_recycle, self.RED, "recycle")
 
         backup_tile = ctk.CTkFrame(
             categories,
@@ -208,7 +209,13 @@ class GUIBuilder:
         backup_tile.grid_columnconfigure(0, weight=1)
         backup_tile.grid_propagate(False)
         backup_text = ctk.CTkFrame(backup_tile, fg_color="transparent")
-        backup_text.place(x=15, rely=0.5, anchor="w")
+        ctk.CTkLabel(
+            backup_tile,
+            text="",
+            image=self._brand_image("backup", 27),
+            width=30,
+        ).place(x=14, rely=0.5, anchor="w")
+        backup_text.place(x=51, rely=0.5, anchor="w")
         ctk.CTkLabel(
             backup_text,
             text="Защита перед очисткой",
@@ -287,7 +294,7 @@ class GUIBuilder:
         for column, (key, title) in enumerate((
             ("steam", "Steam"), ("epic", "Epic Games"), ("battlenet", "Battle.net"),
         )):
-            self._checkbox(launcher_box, title, self.launcher_vars[key], "#45B7F1").grid(
+            self._checkbox(launcher_box, title, self.launcher_vars[key], "#45B7F1", key).grid(
                 row=0, column=column, sticky="w", padx=13, pady=12
             )
 
@@ -320,9 +327,10 @@ class GUIBuilder:
             ("pip", "pip"), ("npm", "npm"), ("pnpm", "pnpm"),
             ("yarn", "Yarn"), ("gradle", "Gradle"), ("nuget", "NuGet"),
         )):
-            checkbox = self._checkbox(developer_box, title, self.developer_vars[key], "#F4C95D")
-            checkbox.grid(row=index // 3, column=index % 3, sticky="w", padx=13, pady=9)
-            self.developer_widgets.append(checkbox)
+            icon_name = "pypi" if key == "pip" else key
+            item = self._checkbox(developer_box, title, self.developer_vars[key], "#F4C95D", icon_name)
+            item.grid(row=index // 3, column=index % 3, sticky="w", padx=13, pady=9)
+            self.developer_widgets.append(item.checkbox)
         self._update_developer_state()
 
     def _create_dashboard(self, parent):
@@ -510,9 +518,33 @@ class GUIBuilder:
         self.control_widgets.append(switch)
         return switch
 
-    def _checkbox(self, parent, text, variable, accent):
+    def _brand_image(self, name: str, size: int = 22):
+        key = (name, size)
+        if key not in self.brand_images:
+            path = resource_path(f"assets/brand-icons/{name}.png")
+            try:
+                source = Image.open(path)
+                self.brand_images[key] = ctk.CTkImage(
+                    light_image=source,
+                    dark_image=source,
+                    size=(size, size),
+                )
+            except OSError:
+                return None
+        return self.brand_images[key]
+
+    def _checkbox(self, parent, text, variable, accent, icon_name=None):
+        item = ctk.CTkFrame(parent, fg_color="transparent")
+        if icon_name:
+            ctk.CTkLabel(
+                item,
+                text="",
+                image=self._brand_image(icon_name, 20),
+                width=24,
+                height=22,
+            ).pack(side="left", padx=(0, 5))
         checkbox = ctk.CTkCheckBox(
-            parent,
+            item,
             text=text,
             variable=variable,
             text_color=self.TEXT,
@@ -525,10 +557,12 @@ class GUIBuilder:
             fg_color=accent,
             hover_color=accent,
         )
+        checkbox.pack(side="left")
+        item.checkbox = checkbox
         self.control_widgets.append(checkbox)
-        return checkbox
+        return item
 
-    def _category_tile(self, parent, row, column, title, subtitle, variable, accent):
+    def _category_tile(self, parent, row, column, title, subtitle, variable, accent, icon_name):
         tile = ctk.CTkFrame(
             parent,
             fg_color="#171B21",
@@ -539,17 +573,23 @@ class GUIBuilder:
         tile.grid_columnconfigure(1, weight=1)
         tile.grid_propagate(False)
 
-        accent_dot = ctk.CTkFrame(
+        icon_shell = ctk.CTkFrame(
             tile,
-            width=8,
-            height=8,
-            corner_radius=4,
-            fg_color=accent,
+            width=38,
+            height=38,
+            corner_radius=10,
+            fg_color="#20252D",
         )
-        accent_dot.place(x=15, rely=0.5, anchor="w")
+        icon_shell.place(x=13, rely=0.5, anchor="w")
+        icon_shell.pack_propagate(False)
+        ctk.CTkLabel(
+            icon_shell,
+            text="",
+            image=self._brand_image(icon_name, 25),
+        ).place(relx=0.5, rely=0.5, anchor="center")
 
         text_block = ctk.CTkFrame(tile, fg_color="transparent")
-        text_block.place(x=35, rely=0.5, anchor="w")
+        text_block.place(x=61, rely=0.5, anchor="w")
         ctk.CTkLabel(
             text_block,
             text=title,
@@ -581,22 +621,8 @@ class GUIBuilder:
         }
         names = [("chrome", "Chrome"), ("firefox", "Firefox"), ("edge", "Edge"), ("brave", "Brave"), ("yandex", "Yandex")]
         for index, (key, title) in enumerate(names):
-            checkbox = ctk.CTkCheckBox(
-                browser_box,
-                text=title,
-                variable=self.browser_vars[key],
-                text_color=self.TEXT,
-                font=ctk.CTkFont(family="Segoe UI", size=11),
-                checkbox_width=18,
-                checkbox_height=18,
-                corner_radius=5,
-                border_width=1,
-                border_color="#4A5360",
-                fg_color=self.CYAN,
-                hover_color=self.CYAN,
-            )
-            checkbox.grid(row=index // 3, column=index % 3, sticky="w", padx=14, pady=9)
-            self.control_widgets.append(checkbox)
+            item = self._checkbox(browser_box, title, self.browser_vars[key], self.CYAN, key)
+            item.grid(row=index // 3, column=index % 3, sticky="w", padx=13, pady=9)
 
     def _draw_donut(self, category_totals: Dict[str, int]):
         self.chart.delete("all")
