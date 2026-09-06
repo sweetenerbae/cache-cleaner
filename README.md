@@ -49,7 +49,7 @@
 - Remind the user when old backups continue to occupy disk space
 - Show the exact cleaned and remaining size
 - Report files that Windows or running applications have locked
-- Graphite liquid-glass interface with sidebar navigation and large application icons
+- Graphite liquid-glass interface with a warm yellow accent, sidebar navigation, and large application icons
 - Quick cleanup presets for everyday, gaming, and developer scenarios
 - Responsive layout with a compact sidebar and scrolling on smaller windows
 

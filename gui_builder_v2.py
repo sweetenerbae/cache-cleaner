@@ -17,33 +17,33 @@ def resource_path(relative_path: str) -> str:
 
 
 class GUIBuilder:
-    BG = "#080B0F"
-    SIDEBAR = "#10161D"
-    SIDEBAR_ACTIVE = "#1B3150"
-    SURFACE = "#12171D"
-    SURFACE_ALT = "#171D24"
-    SURFACE_RAISED = "#1B222B"
-    BORDER = "#2A333E"
-    BORDER_SOFT = "#202832"
-    TEXT = "#F5F7FA"
-    MUTED = "#96A1AF"
-    ACCENT = "#4A86E8"
-    ACCENT_HOVER = "#3B74CE"
-    CYAN = "#52C7E8"
-    GREEN = "#67D9A6"
-    RED = "#F07178"
-    AMBER = "#F5BC62"
-    TRACK = "#28313D"
+    BG = "#050505"
+    SIDEBAR = "#0B0B0B"
+    SIDEBAR_ACTIVE = "#24230F"
+    SURFACE = "#141414"
+    SURFACE_ALT = "#1A1A1A"
+    SURFACE_RAISED = "#242424"
+    BORDER = "#303030"
+    BORDER_SOFT = "#222222"
+    TEXT = "#F5F5F5"
+    MUTED = "#929292"
+    ACCENT = "#FFEA00"
+    ACCENT_HOVER = "#E6D300"
+    CYAN = "#FFCC33"
+    GREEN = "#B6F24A"
+    RED = "#FF5C66"
+    AMBER = "#FFB84D"
+    TRACK = "#2B2B2B"
 
     CHART_COLORS = {
-        "Windows": "#5790F5",
-        "Adobe": "#F2A365",
-        "Discord": "#9C7BEF",
-        "Browsers": "#55D1C4",
-        "Applications": "#39B8EF",
-        "Launchers": "#6CA8FF",
-        "Developer": "#F4C95D",
-        "Recycle Bin": "#F07178",
+        "Windows": "#FFEA00",
+        "Adobe": "#FF9D3D",
+        "Discord": "#D45CFF",
+        "Browsers": "#FF526C",
+        "Applications": "#C56CFF",
+        "Launchers": "#A9E84A",
+        "Developer": "#FFC247",
+        "Recycle Bin": "#FF5C66",
     }
     CATEGORY_LABELS = {
         "Windows": "Windows",
@@ -176,19 +176,19 @@ class GUIBuilder:
 
         self.sidebar_glass = ctk.CTkFrame(
             self.sidebar,
-            fg_color="#111820",
+            fg_color="#101010",
             corner_radius=24,
             border_width=1,
-            border_color="#354555",
+            border_color="#383838",
         )
         self.sidebar_glass.grid(row=0, column=0, sticky="nsew", padx=(10, 6), pady=10)
         self.sidebar_glass.grid_columnconfigure(0, weight=1)
         self.sidebar_glass.grid_rowconfigure(2, weight=1)
         ctk.CTkFrame(
-            self.sidebar_glass, height=2, fg_color="#536577", corner_radius=2
+            self.sidebar_glass, height=2, fg_color="#575757", corner_radius=2
         ).place(relx=.12, rely=0, relwidth=.76, y=1)
         ctk.CTkFrame(
-            self.sidebar_glass, width=3, fg_color="#20384D", corner_radius=3
+            self.sidebar_glass, width=3, fg_color="#6B6400", corner_radius=3
         ).place(relx=1, rely=.12, relheight=.72, x=-3, anchor="ne")
 
         brand = ctk.CTkFrame(self.sidebar_glass, fg_color="transparent", height=104)
@@ -216,7 +216,7 @@ class GUIBuilder:
         )
         self.brand_subtitle.grid(row=1, column=1, sticky="nw", padx=(10, 0), pady=(2, 8))
 
-        divider = ctk.CTkFrame(self.sidebar_glass, height=1, fg_color="#2B3845")
+        divider = ctk.CTkFrame(self.sidebar_glass, height=1, fg_color="#303030")
         divider.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 14))
 
         nav = ctk.CTkFrame(self.sidebar_glass, fg_color="transparent")
@@ -240,11 +240,11 @@ class GUIBuilder:
                 command=lambda page=key: self.show_page(page),
                 height=48,
                 corner_radius=12,
-                fg_color="#111820",
-                hover_color="#1B2A37",
+                fg_color="#101010",
+                hover_color="#292929",
                 border_width=1,
-                border_color="#1B2732",
-                text_color="#C5CED9",
+                border_color="#242424",
+                text_color="#C8C8C8",
                 font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             )
             button.grid(row=row, column=0, sticky="ew", pady=4)
@@ -259,11 +259,11 @@ class GUIBuilder:
             command=self.restore_callback,
             height=48,
             corner_radius=12,
-            fg_color="#111820",
-            hover_color="#1B2A37",
+            fg_color="#101010",
+            hover_color="#292929",
             border_width=1,
-            border_color="#1B2732",
-            text_color="#C5CED9",
+            border_color="#242424",
+            text_color="#C8C8C8",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
         backup_button.grid(row=len(nav_items), column=0, sticky="ew", pady=4)
@@ -271,8 +271,8 @@ class GUIBuilder:
         self.control_widgets.append(backup_button)
 
         footer = ctk.CTkFrame(
-            self.sidebar_glass, fg_color="#14251F", corner_radius=14,
-            border_width=1, border_color="#315244",
+            self.sidebar_glass, fg_color="#1B1B0F", corner_radius=14,
+            border_width=1, border_color="#4A4718",
         )
         footer.grid(row=3, column=0, sticky="ew", padx=14, pady=18)
         self.sidebar_status_icon = ctk.CTkLabel(
@@ -302,7 +302,7 @@ class GUIBuilder:
         self.page_subtitle.grid(row=1, column=0, sticky="nw", pady=(2, 10))
         self.ready_badge = ctk.CTkLabel(
             header, text="●  Система готова", text_color=self.GREEN,
-            fg_color="#13241E", corner_radius=14, width=148, height=34,
+            fg_color="#1B1B0F", corner_radius=14, width=148, height=34,
             font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
         )
         self.ready_badge.grid(row=0, column=1, rowspan=2, sticky="e")
@@ -325,7 +325,7 @@ class GUIBuilder:
             fg_color="transparent",
             corner_radius=0,
             scrollbar_button_color=self.BORDER,
-            scrollbar_button_hover_color="#3A4653",
+            scrollbar_button_hover_color="#4A4A4A",
         )
         page.grid(row=0, column=0, sticky="nsew")
         page.grid_columnconfigure(0, weight=1)
@@ -443,7 +443,7 @@ class GUIBuilder:
         button = ctk.CTkButton(
             adobe_path, text="Изменить", command=self._choose_adobe_folder,
             width=94, height=34, corner_radius=10, fg_color=self.SURFACE_RAISED,
-            hover_color="#26313C", border_width=1, border_color=self.BORDER,
+            hover_color="#2A2A2A", border_width=1, border_color=self.BORDER,
             font=ctk.CTkFont(family="Segoe UI", size=11),
         )
         button.grid(row=0, column=1, rowspan=2, padx=16)
@@ -504,7 +504,7 @@ class GUIBuilder:
 
     def _create_action_bar(self):
         bar = ctk.CTkFrame(
-            self.main_shell, height=76, fg_color="#10151B", corner_radius=16,
+            self.main_shell, height=76, fg_color="#101010", corner_radius=16,
             border_width=1, border_color=self.BORDER_SOFT,
         )
         bar.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 16))
@@ -525,21 +525,21 @@ class GUIBuilder:
         self.btn_scan = ctk.CTkButton(
             bar, text="Сканировать", command=self._on_scan,
             width=164, height=44, corner_radius=12, fg_color=self.SURFACE_RAISED,
-            hover_color="#26313C", border_width=1, border_color="#34404D",
+            hover_color="#2A2A2A", border_width=1, border_color="#3A3A3A",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
         self.btn_scan.grid(row=0, column=2, padx=10, pady=15)
         self.btn_cleanup = ctk.CTkButton(
             bar, text="Начать очистку", command=self._on_cleanup,
             width=186, height=46, corner_radius=12, fg_color=self.ACCENT,
-            hover_color=self.ACCENT_HOVER,
+            hover_color=self.ACCENT_HOVER, text_color="#090909",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
         self.btn_cleanup.grid(row=0, column=3, padx=(0, 16), pady=15)
         self.control_widgets.extend([self.btn_restore, self.btn_scan, self.btn_cleanup])
 
         self.progress_strip = ctk.CTkProgressBar(
-            bar, height=2, corner_radius=0, fg_color="#10151B", progress_color=self.ACCENT
+            bar, height=2, corner_radius=0, fg_color="#101010", progress_color=self.ACCENT
         )
         self.progress_strip.place(relx=0, rely=1, relwidth=1, y=-2)
         self.progress_strip.set(0)
@@ -564,13 +564,13 @@ class GUIBuilder:
                 button.configure(
                     fg_color=self.SIDEBAR_ACTIVE,
                     text_color=self.TEXT,
-                    border_color="#466D91",
+                    border_color="#706900",
                 )
             else:
                 button.configure(
-                    fg_color="#111820",
-                    text_color="#C5CED9",
-                    border_color="#1B2732",
+                    fg_color="#101010",
+                    text_color="#C8C8C8",
+                    border_color="#242424",
                 )
 
     def _glass_card(self, parent):
@@ -595,7 +595,7 @@ class GUIBuilder:
         button = ctk.CTkButton(
             parent, text=f"{title}\n{subtitle}", image=self._brand_image(icon, 35),
             compound="left", anchor="w", command=command, height=88,
-            corner_radius=15, fg_color=self.SURFACE, hover_color="#1B2631",
+            corner_radius=15, fg_color=self.SURFACE, hover_color="#292929",
             border_width=1, border_color=self.BORDER, text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
@@ -666,7 +666,7 @@ class GUIBuilder:
             checkbox = ctk.CTkCheckBox(
                 card, text="", variable=variables[key], width=22,
                 checkbox_width=21, checkbox_height=21, corner_radius=7,
-                border_width=1, border_color="#536172", fg_color=accent,
+                border_width=1, border_color="#5A5A5A", fg_color=accent,
                 hover_color=accent, command=self._sync_master_vars,
             )
             checkbox.grid(row=0, column=2, rowspan=2, padx=13)
@@ -678,8 +678,8 @@ class GUIBuilder:
         switch = ctk.CTkSwitch(
             parent, text="", variable=variable, command=command,
             width=44, height=24, switch_width=44, switch_height=24,
-            corner_radius=12, border_width=0, fg_color="#343E4B",
-            progress_color=accent, button_color="#F5F7FA", button_hover_color="#FFFFFF",
+            corner_radius=12, border_width=0, fg_color="#3A3A3A",
+            progress_color=accent, button_color="#F5F5F5", button_hover_color="#FFFFFF",
         )
         self.control_widgets.append(switch)
         return switch
@@ -735,10 +735,10 @@ class GUIBuilder:
             item = ctk.CTkFrame(
                 self.summary_legend,
                 height=30,
-                fg_color="#19212A",
+                fg_color="#202020",
                 corner_radius=15,
                 border_width=1,
-                border_color="#303C49",
+                border_color="#3A3A3A",
             )
             item.pack_propagate(False)
             item.flow_width = max(86, legend_font.measure(display_text) + 36)
@@ -748,7 +748,7 @@ class GUIBuilder:
             ).pack(side="left", padx=(8, 1))
             ctk.CTkLabel(
                 item, text=display_text,
-                text_color="#C6CFDA", font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+                text_color="#D0D0D0", font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
             ).pack(side="left", padx=(0, 9))
             self.summary_pills.append(item)
         self.summary_legend.after_idle(self._layout_summary_pills)
@@ -985,7 +985,7 @@ class GUIBuilder:
         ctk.CTkButton(
             shell, text="Готово", command=window.destroy, width=150, height=42,
             corner_radius=12, fg_color=self.ACCENT, hover_color=self.ACCENT_HOVER,
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color="#090909", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         ).grid(row=2, column=0, sticky="e", padx=20, pady=18)
 
     def reset_progress(self):
