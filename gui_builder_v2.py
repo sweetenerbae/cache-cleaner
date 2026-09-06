@@ -2,6 +2,7 @@ import os
 import sys
 import threading
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from typing import Callable, Dict, Optional
@@ -74,6 +75,8 @@ class GUIBuilder:
         self.brand_images: Dict[tuple, ctk.CTkImage] = {}
         self.pages = {}
         self.nav_buttons = {}
+        self.summary_pills = []
+        self._summary_legend_height = 0
         self.nav_labels = {
             "overview": "Обзор",
             "system": "Система",
@@ -161,20 +164,34 @@ class GUIBuilder:
     def _create_sidebar(self):
         self.sidebar = ctk.CTkFrame(
             self.root,
-            width=224,
-            fg_color=self.SIDEBAR,
+            width=238,
+            fg_color=self.BG,
             corner_radius=0,
             border_width=0,
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_propagate(False)
+        self.sidebar.grid_rowconfigure(0, weight=1)
         self.sidebar.grid_columnconfigure(0, weight=1)
-        self.sidebar.grid_rowconfigure(2, weight=1)
 
-        edge = ctk.CTkFrame(self.sidebar, width=1, fg_color="#34404D", corner_radius=0)
-        edge.place(relx=1, rely=0, relheight=1, anchor="ne")
+        self.sidebar_glass = ctk.CTkFrame(
+            self.sidebar,
+            fg_color="#111820",
+            corner_radius=24,
+            border_width=1,
+            border_color="#354555",
+        )
+        self.sidebar_glass.grid(row=0, column=0, sticky="nsew", padx=(10, 6), pady=10)
+        self.sidebar_glass.grid_columnconfigure(0, weight=1)
+        self.sidebar_glass.grid_rowconfigure(2, weight=1)
+        ctk.CTkFrame(
+            self.sidebar_glass, height=2, fg_color="#536577", corner_radius=2
+        ).place(relx=.12, rely=0, relwidth=.76, y=1)
+        ctk.CTkFrame(
+            self.sidebar_glass, width=3, fg_color="#20384D", corner_radius=3
+        ).place(relx=1, rely=.12, relheight=.72, x=-3, anchor="ne")
 
-        brand = ctk.CTkFrame(self.sidebar, fg_color="transparent", height=104)
+        brand = ctk.CTkFrame(self.sidebar_glass, fg_color="transparent", height=104)
         brand.grid(row=0, column=0, sticky="ew", padx=18, pady=(20, 8))
         brand.grid_propagate(False)
         brand.grid_columnconfigure(1, weight=1)
@@ -199,10 +216,10 @@ class GUIBuilder:
         )
         self.brand_subtitle.grid(row=1, column=1, sticky="nw", padx=(10, 0), pady=(2, 8))
 
-        divider = ctk.CTkFrame(self.sidebar, height=1, fg_color=self.BORDER_SOFT)
+        divider = ctk.CTkFrame(self.sidebar_glass, height=1, fg_color="#2B3845")
         divider.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 14))
 
-        nav = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        nav = ctk.CTkFrame(self.sidebar_glass, fg_color="transparent")
         nav.grid(row=2, column=0, sticky="nsew", padx=12)
         nav.grid_columnconfigure(0, weight=1)
         nav_items = [
@@ -223,8 +240,10 @@ class GUIBuilder:
                 command=lambda page=key: self.show_page(page),
                 height=48,
                 corner_radius=12,
-                fg_color="transparent",
-                hover_color="#19232D",
+                fg_color="#111820",
+                hover_color="#1B2A37",
+                border_width=1,
+                border_color="#1B2732",
                 text_color="#C5CED9",
                 font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             )
@@ -240,8 +259,10 @@ class GUIBuilder:
             command=self.restore_callback,
             height=48,
             corner_radius=12,
-            fg_color="transparent",
-            hover_color="#19232D",
+            fg_color="#111820",
+            hover_color="#1B2A37",
+            border_width=1,
+            border_color="#1B2732",
             text_color="#C5CED9",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
@@ -250,8 +271,8 @@ class GUIBuilder:
         self.control_widgets.append(backup_button)
 
         footer = ctk.CTkFrame(
-            self.sidebar, fg_color="#13241E", corner_radius=14,
-            border_width=1, border_color="#244437",
+            self.sidebar_glass, fg_color="#14251F", corner_radius=14,
+            border_width=1, border_color="#315244",
         )
         footer.grid(row=3, column=0, sticky="ew", padx=14, pady=18)
         self.sidebar_status_icon = ctk.CTkLabel(
@@ -334,7 +355,8 @@ class GUIBuilder:
         self.lbl_metric_hint.grid(row=1, column=1, sticky="nw", padx=12, pady=(3, 6))
         self.summary_legend = ctk.CTkFrame(summary, fg_color="transparent")
         self.summary_legend.grid(row=2, column=1, sticky="nsew", padx=(8, 18), pady=(0, 16))
-        self.summary_legend.grid_columnconfigure((0, 1), weight=1)
+        self.summary_legend.grid_propagate(False)
+        self.summary_legend.bind("<Configure>", self._layout_summary_pills)
         self._render_summary_legend({})
 
         safety = self._glass_card(top)
@@ -539,9 +561,17 @@ class GUIBuilder:
         self.page_subtitle.configure(text=subtitle)
         for name, button in self.nav_buttons.items():
             if name == page_name:
-                button.configure(fg_color=self.SIDEBAR_ACTIVE, text_color=self.TEXT)
+                button.configure(
+                    fg_color=self.SIDEBAR_ACTIVE,
+                    text_color=self.TEXT,
+                    border_color="#466D91",
+                )
             else:
-                button.configure(fg_color="transparent", text_color="#C5CED9")
+                button.configure(
+                    fg_color="#111820",
+                    text_color="#C5CED9",
+                    border_color="#1B2732",
+                )
 
     def _glass_card(self, parent):
         return ctk.CTkFrame(
@@ -695,21 +725,57 @@ class GUIBuilder:
     def _render_summary_legend(self, category_totals: Dict[str, int]):
         for child in self.summary_legend.winfo_children():
             child.destroy()
+        self.summary_pills = []
         values = category_totals or {"Windows": 0, "Browsers": 0, "Applications": 0, "Launchers": 0}
-        for index, (category, size) in enumerate(values.items()):
-            row, column = index // 2, index % 2
-            item = ctk.CTkFrame(self.summary_legend, fg_color="transparent")
-            item.grid(row=row, column=column, sticky="ew", padx=3, pady=3)
-            ctk.CTkLabel(
-                item, text="●", width=14, text_color=self.CHART_COLORS.get(category, self.ACCENT),
-                font=ctk.CTkFont(size=10),
-            ).pack(side="left")
+        legend_font = tkfont.Font(root=self.root, family="Segoe UI", size=9, weight="bold")
+        for category, size in values.items():
             label = self.CATEGORY_LABELS.get(category, category)
             value = self._format_size(size) if category_totals else label
+            display_text = f"{label}: {value}" if category_totals else value
+            item = ctk.CTkFrame(
+                self.summary_legend,
+                height=30,
+                fg_color="#19212A",
+                corner_radius=15,
+                border_width=1,
+                border_color="#303C49",
+            )
+            item.pack_propagate(False)
+            item.flow_width = max(86, legend_font.measure(display_text) + 36)
             ctk.CTkLabel(
-                item, text=f"{label}: {value}" if category_totals else value,
+                item, text="●", width=13, text_color=self.CHART_COLORS.get(category, self.ACCENT),
+                font=ctk.CTkFont(size=10),
+            ).pack(side="left", padx=(8, 1))
+            ctk.CTkLabel(
+                item, text=display_text,
                 text_color="#C6CFDA", font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
-            ).pack(side="left")
+            ).pack(side="left", padx=(0, 9))
+            self.summary_pills.append(item)
+        self.summary_legend.after_idle(self._layout_summary_pills)
+
+    def _layout_summary_pills(self, _event=None):
+        if not self.summary_pills:
+            return
+        available_width = self.summary_legend.winfo_width()
+        if available_width <= 1:
+            self.summary_legend.after(20, self._layout_summary_pills)
+            return
+        gap = 6
+        pill_height = 30
+        x = 0
+        y = 0
+        for pill in self.summary_pills:
+            pill_width = min(pill.flow_width, available_width)
+            if x and x + pill_width > available_width:
+                x = 0
+                y += pill_height + gap
+            pill.configure(width=pill_width, height=pill_height)
+            pill.place(x=x, y=y)
+            x += pill_width + gap
+        required_height = y + pill_height
+        if required_height != self._summary_legend_height:
+            self._summary_legend_height = required_height
+            self.summary_legend.configure(height=required_height)
 
     def _preset_quick(self):
         self.var_windows.set(True)
@@ -942,7 +1008,7 @@ class GUIBuilder:
             return
         self._layout_mode = mode
         compact = mode == "compact"
-        self.sidebar.configure(width=82 if compact else 224)
+        self.sidebar.configure(width=96 if compact else 238)
         if compact:
             self.brand_title.grid_remove()
             self.brand_subtitle.grid_remove()

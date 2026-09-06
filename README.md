@@ -36,7 +36,7 @@
 ## Features
 
 - Scan selected locations before deleting anything
-- Live donut chart grouped by category and refreshed after cleanup
+- Live donut chart with adaptive category capsules, refreshed after cleanup
 - Clean Windows temporary files
 - Clean Adobe, Discord, Telegram, Teams, Spotify, browser, and game-launcher caches
 - Optional developer mode for pip, npm, pnpm, Yarn, Gradle, and NuGet caches
