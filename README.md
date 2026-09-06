@@ -38,7 +38,9 @@
 - Scan cache before deleting anything
 - Live donut chart grouped by cache category
 - Clean Windows temporary files
-- Clean Adobe, Discord, and browser caches
+- Clean Adobe, Discord, browser, and game-launcher caches
+- Optional developer mode for pip, npm, pnpm, Yarn, Gradle, and NuGet caches
+- Scan and empty the Windows Recycle Bin with a separate confirmation
 - Support Chrome, Firefox, Edge, Brave, and Yandex Browser
 - Create ZIP backups before cleanup and restore them later
 - Show the exact cleaned and remaining size
@@ -64,6 +66,11 @@ Python is not required for the ready-to-use EXE. Windows SmartScreen may display
 | Adobe | Media Cache, Media Cache Files, selected custom cache folder |
 | Discord | Cache, Code Cache, GPUCache |
 | Browsers | Chrome, Firefox, Edge, Brave, Yandex Browser caches |
+| Game launchers | Steam web/UI cache, Epic Games Launcher web cache, Battle.net cache |
+| Developer mode | pip, npm, pnpm, Yarn, Gradle, NuGet dependency caches |
+| Recycle Bin | Contents of the Windows Recycle Bin; disabled by default and not included in backups |
+
+Game installations, source code, `node_modules`, virtual environments, and project build folders are not selected. Developer caches may need to be downloaded again on the next build.
 
 ## Backups and privacy
 

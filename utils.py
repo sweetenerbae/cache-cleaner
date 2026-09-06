@@ -104,6 +104,85 @@ def get_browser_paths() -> Dict[str, List[str]]:
     }
     return browsers
 
+
+def _existing_unique_paths(paths: List[Optional[str]]) -> List[str]:
+    """Return existing paths without case-insensitive duplicates."""
+    result = []
+    seen = set()
+    for path in paths:
+        if not path:
+            continue
+        normalized = os.path.normpath(os.path.expandvars(path))
+        key = os.path.normcase(normalized)
+        if key not in seen and os.path.exists(normalized):
+            seen.add(key)
+            result.append(normalized)
+    return result
+
+
+def get_launcher_cache_paths() -> Dict[str, List[str]]:
+    """Discover disposable UI/web caches without touching installed games."""
+    local = os.getenv("LOCALAPPDATA")
+    roaming = os.getenv("APPDATA")
+    program_data = os.getenv("PROGRAMDATA")
+    program_files_x86 = os.getenv("ProgramFiles(x86)")
+
+    steam_root = None
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
+            steam_root, _ = winreg.QueryValueEx(key, "SteamPath")
+    except (FileNotFoundError, OSError):
+        pass
+    if not steam_root and program_files_x86:
+        steam_root = os.path.join(program_files_x86, "Steam")
+
+    epic_paths = []
+    if local:
+        epic_paths.extend(glob.glob(os.path.join(local, "EpicGamesLauncher", "Saved", "webcache*")))
+
+    return {
+        "steam": _existing_unique_paths([
+            os.path.join(steam_root, "appcache", "httpcache") if steam_root else None,
+            os.path.join(steam_root, "config", "htmlcache") if steam_root else None,
+            os.path.join(steam_root, "steamui", "cached") if steam_root else None,
+        ]),
+        "epic": _existing_unique_paths(epic_paths),
+        "battlenet": _existing_unique_paths([
+            os.path.join(local, "Battle.net", "Cache") if local else None,
+            os.path.join(roaming, "Battle.net", "Cache") if roaming else None,
+            os.path.join(program_data, "Battle.net", "Agent", "BlizzardCache") if program_data else None,
+            os.path.join(program_data, "Blizzard Entertainment", "Battle.net", "Cache") if program_data else None,
+        ]),
+    }
+
+
+def get_developer_cache_paths() -> Dict[str, List[str]]:
+    """Discover package-manager caches; project sources are never included."""
+    local = os.getenv("LOCALAPPDATA")
+    user_profile = os.getenv("USERPROFILE")
+    return {
+        "pip": _existing_unique_paths([
+            os.path.join(local, "pip", "Cache") if local else None,
+        ]),
+        "npm": _existing_unique_paths([
+            os.path.join(local, "npm-cache") if local else None,
+        ]),
+        "pnpm": _existing_unique_paths([
+            os.path.join(local, "pnpm", "store") if local else None,
+            os.path.join(local, "pnpm-store") if local else None,
+        ]),
+        "yarn": _existing_unique_paths([
+            os.path.join(local, "Yarn", "Cache") if local else None,
+            os.path.join(local, "Yarn", "Berry", "cache") if local else None,
+        ]),
+        "gradle": _existing_unique_paths([
+            os.path.join(user_profile, ".gradle", "caches") if user_profile else None,
+        ]),
+        "nuget": _existing_unique_paths([
+            os.path.join(user_profile, ".nuget", "packages") if user_profile else None,
+        ]),
+    }
+
 def get_all_adobe_paths(custom_path: Optional[str] = None) -> List[str]:
     all_paths = []
 

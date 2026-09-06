@@ -6,7 +6,14 @@ from backup_system import BackupSystem
 from cleanup_logic import CleanupLogic
 from gui_builder import GUIBuilder
 from restore_window import RestoreWindow
-from utils import BackupType, get_all_adobe_paths, is_admin, request_admin
+from utils import (
+    BackupType,
+    get_all_adobe_paths,
+    get_developer_cache_paths,
+    get_launcher_cache_paths,
+    is_admin,
+    request_admin,
+)
 
 
 class CacheCleanerApp:
@@ -56,6 +63,23 @@ class CacheCleanerApp:
         if enabled_browser_paths:
             path_groups["Browsers"] = enabled_browser_paths
 
+        launcher_paths = get_launcher_cache_paths()
+        selected_launcher_paths: List[str] = []
+        for launcher, enabled in options.get("launchers", {}).items():
+            if enabled:
+                selected_launcher_paths.extend(launcher_paths.get(launcher, []))
+        if selected_launcher_paths:
+            path_groups["Launchers"] = selected_launcher_paths
+
+        if options.get("developer_mode"):
+            developer_paths = get_developer_cache_paths()
+            selected_developer_paths: List[str] = []
+            for tool, enabled in options.get("developer_tools", {}).items():
+                if enabled:
+                    selected_developer_paths.extend(developer_paths.get(tool, []))
+            if selected_developer_paths:
+                path_groups["Developer"] = selected_developer_paths
+
         normalized_groups: Dict[str, List[str]] = {}
         seen_paths = set()
 
@@ -79,13 +103,24 @@ class CacheCleanerApp:
         return normalized_groups
 
     def _build_scan_message(self, scan_results: List[Tuple[str, int]], category_totals: Dict[str, int]) -> str:
-        total_size = sum(size for _, size in scan_results)
+        total_size = sum(category_totals.values())
         lines = [f"Можно освободить: {self.cleanup_logic.format_size(total_size)}", ""]
+        category_names = {
+            "Windows": "Windows",
+            "Adobe": "Adobe",
+            "Discord": "Discord",
+            "Browsers": "Браузеры",
+            "Launchers": "Игровые лаунчеры",
+            "Developer": "Режим разработчика",
+            "Recycle Bin": "Корзина",
+        }
 
         if category_totals:
             lines.append("По категориям:")
             for category, size in category_totals.items():
-                lines.append(f"- {category}: {self.cleanup_logic.format_size(size)}")
+                lines.append(
+                    f"- {category_names.get(category, category)}: {self.cleanup_logic.format_size(size)}"
+                )
             lines.append("")
 
         non_empty_results = [(path, size) for path, size in scan_results if size > 0]
@@ -93,8 +128,10 @@ class CacheCleanerApp:
             lines.append("Самые большие папки:")
             for path, size in sorted(non_empty_results, key=lambda item: item[1], reverse=True)[:5]:
                 lines.append(f"- {self.cleanup_logic.format_size(size)} — {path}")
-        else:
+        elif total_size == 0:
             lines.append("Подходящие папки найдены, но размер кэша сейчас почти нулевой.")
+        else:
+            lines.append("Основной объём находится в корзине Windows.")
 
         return "\n".join(lines)
 
@@ -103,8 +140,9 @@ class CacheCleanerApp:
             path_groups = self.collect_paths_to_clean(options)
             paths_to_clean = [path for paths in path_groups.values() for path in paths]
 
-            if not paths_to_clean:
-                self.gui_builder.show_message("Внимание", "Не выбрано ни одной папки для очистки")
+            recycle_selected = options.get("recycle_bin", False)
+            if not paths_to_clean and not recycle_selected:
+                self.gui_builder.show_message("Внимание", "Не выбрано данных для очистки")
                 return
 
             backup_name = None
@@ -131,16 +169,11 @@ class CacheCleanerApp:
             self.cleanup_logic.reset_cleanup_stats()
             progress_callback(50, "Очистка файлов...")
 
-            if options["windows"]:
-                total_freed += self.cleanup_logic.cleanup_windows_temp()
+            for path in paths_to_clean:
+                total_freed += self.cleanup_logic.clear_directory(path)
 
-            if options["adobe"]:
-                total_freed += self.cleanup_logic.cleanup_adobe(options["adobe_folder"])
-
-            if options["discord"]:
-                total_freed += self.cleanup_logic.cleanup_discord()
-
-            total_freed += self.cleanup_logic.cleanup_browsers(options["browsers"])
+            if recycle_selected:
+                total_freed += self.cleanup_logic.empty_recycle_bin()
 
             progress_callback(90, "Проверяем результат...")
             remaining_results = self.cleanup_logic.preview_paths(paths_to_clean)
@@ -149,7 +182,9 @@ class CacheCleanerApp:
                 remaining_by_category[category] = sum(
                     size for path, size in remaining_results if path in paths
                 )
-            remaining_total = sum(size for _, size in remaining_results)
+            if recycle_selected:
+                remaining_by_category["Recycle Bin"] = self.cleanup_logic.recycle_bin_size()
+            remaining_total = sum(remaining_by_category.values())
             self.gui_builder.update_dashboard(
                 remaining_by_category,
                 remaining_total,
@@ -181,8 +216,9 @@ class CacheCleanerApp:
             path_groups = self.collect_paths_to_clean(options)
             paths_to_scan = [path for paths in path_groups.values() for path in paths]
 
-            if not paths_to_scan:
-                self.gui_builder.show_message("Внимание", "Не найдено папок для сканирования")
+            recycle_selected = options.get("recycle_bin", False)
+            if not paths_to_scan and not recycle_selected:
+                self.gui_builder.show_message("Внимание", "Не найдено данных для сканирования")
                 return
 
             progress_callback(20, "Сканирование кэша...")
@@ -191,13 +227,15 @@ class CacheCleanerApp:
             category_totals: Dict[str, int] = {}
             for category, paths in path_groups.items():
                 category_totals[category] = sum(size for path, size in scan_results if path in paths)
+            if recycle_selected:
+                category_totals["Recycle Bin"] = self.cleanup_logic.recycle_bin_size()
 
             progress_callback(100, "Сканирование завершено")
             self.gui_builder.show_scan_results(
                 "Результат сканирования",
                 self._build_scan_message(scan_results, category_totals),
                 category_totals,
-                sum(size for _, size in scan_results),
+                sum(category_totals.values()),
             )
         except Exception as error:
             self.gui_builder.show_message("Ошибка", f"Ошибка при сканировании:\n{error}", True)

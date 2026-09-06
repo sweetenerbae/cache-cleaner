@@ -34,6 +34,18 @@ class GUIBuilder:
         "Adobe": "#F2A365",
         "Discord": "#A68AF0",
         "Browsers": "#54D6C2",
+        "Launchers": "#45B7F1",
+        "Developer": "#F4C95D",
+        "Recycle Bin": "#F07178",
+    }
+    CATEGORY_LABELS = {
+        "Windows": "Windows",
+        "Adobe": "Adobe",
+        "Discord": "Discord",
+        "Browsers": "Браузеры",
+        "Launchers": "Лаунчеры",
+        "Developer": "Dev-кэш",
+        "Recycle Bin": "Корзина",
     }
 
     def __init__(self, cleanup_callback: Callable, restore_callback: Callable, scan_callback: Callable):
@@ -79,6 +91,9 @@ class GUIBuilder:
         self.var_adobe = ctk.BooleanVar(value=True)
         self.var_discord = ctk.BooleanVar(value=True)
         self.var_backup = ctk.BooleanVar(value=True)
+        self.var_recycle = ctk.BooleanVar(value=False)
+        self.var_developer_mode = ctk.BooleanVar(value=False)
+        self.developer_widgets = []
 
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(1, weight=1)
@@ -181,6 +196,7 @@ class GUIBuilder:
         self._category_tile(categories, 0, 0, "Windows", "Временные файлы системы", self.var_windows, self.PURPLE)
         self._category_tile(categories, 1, 0, "Adobe", "Media Cache и превью", self.var_adobe, "#F2A365")
         self._category_tile(categories, 2, 0, "Discord", "Cache, Code Cache и GPUCache", self.var_discord, "#A68AF0")
+        self._category_tile(categories, 3, 0, "Корзина", "Безвозвратное удаление содержимого", self.var_recycle, self.RED)
 
         backup_tile = ctk.CTkFrame(
             categories,
@@ -188,7 +204,7 @@ class GUIBuilder:
             corner_radius=12,
             height=64,
         )
-        backup_tile.grid(row=3, column=0, sticky="ew", padx=4, pady=(9, 5))
+        backup_tile.grid(row=4, column=0, sticky="ew", padx=4, pady=(9, 5))
         backup_tile.grid_columnconfigure(0, weight=1)
         backup_tile.grid_propagate(False)
         backup_text = ctk.CTkFrame(backup_tile, fg_color="transparent")
@@ -252,6 +268,62 @@ class GUIBuilder:
         )
         self.btn_adobe.grid(row=0, column=1, padx=14)
         self.control_widgets.append(self.btn_adobe)
+
+        ctk.CTkLabel(
+            panel,
+            text="Игровые лаунчеры",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+        ).grid(row=6, column=0, sticky="w", padx=22, pady=(0, 8))
+
+        launcher_box = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
+        launcher_box.grid(row=7, column=0, sticky="ew", padx=21)
+        launcher_box.grid_columnconfigure((0, 1, 2), weight=1)
+        self.launcher_vars = {
+            "steam": ctk.BooleanVar(value=False),
+            "epic": ctk.BooleanVar(value=False),
+            "battlenet": ctk.BooleanVar(value=False),
+        }
+        for column, (key, title) in enumerate((
+            ("steam", "Steam"), ("epic", "Epic Games"), ("battlenet", "Battle.net"),
+        )):
+            self._checkbox(launcher_box, title, self.launcher_vars[key], "#45B7F1").grid(
+                row=0, column=column, sticky="w", padx=13, pady=12
+            )
+
+        developer_header = ctk.CTkFrame(panel, fg_color="#1F1D16", corner_radius=12, height=58)
+        developer_header.grid(row=8, column=0, sticky="ew", padx=21, pady=(14, 8))
+        developer_header.grid_columnconfigure(0, weight=1)
+        developer_header.grid_propagate(False)
+        developer_text = ctk.CTkFrame(developer_header, fg_color="transparent")
+        developer_text.grid(row=0, column=0, sticky="w", padx=14)
+        ctk.CTkLabel(
+            developer_text, text="Режим разработчика", text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), height=17,
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            developer_text, text="Кэши зависимостей будут скачаны заново", text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=10), height=14,
+        ).pack(anchor="w", pady=(1, 0))
+        developer_switch = self._switch(developer_header, self.var_developer_mode, "#F4C95D")
+        developer_switch.configure(command=self._update_developer_state)
+        developer_switch.grid(row=0, column=1, padx=14)
+
+        developer_box = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
+        developer_box.grid(row=9, column=0, sticky="ew", padx=21, pady=(0, 18))
+        developer_box.grid_columnconfigure((0, 1, 2), weight=1)
+        self.developer_vars = {
+            key: ctk.BooleanVar(value=True)
+            for key in ("pip", "npm", "pnpm", "yarn", "gradle", "nuget")
+        }
+        for index, (key, title) in enumerate((
+            ("pip", "pip"), ("npm", "npm"), ("pnpm", "pnpm"),
+            ("yarn", "Yarn"), ("gradle", "Gradle"), ("nuget", "NuGet"),
+        )):
+            checkbox = self._checkbox(developer_box, title, self.developer_vars[key], "#F4C95D")
+            checkbox.grid(row=index // 3, column=index % 3, sticky="w", padx=13, pady=9)
+            self.developer_widgets.append(checkbox)
+        self._update_developer_state()
 
     def _create_dashboard(self, parent):
         panel = self._card(parent)
@@ -570,7 +642,7 @@ class GUIBuilder:
         for child in self.legend.winfo_children():
             child.destroy()
 
-        values = category_totals or {"Windows": 0, "Adobe": 0, "Discord": 0, "Browsers": 0}
+        values = category_totals or {"Windows": 0, "Adobe": 0, "Browsers": 0, "Launchers": 0}
         for index, (category, size) in enumerate(values.items()):
             row = index // 2
             column = index % 2
@@ -583,10 +655,11 @@ class GUIBuilder:
                 width=16,
                 font=ctk.CTkFont(family="Segoe UI", size=11),
             ).pack(side="left")
-            value = self._format_size(size) if category_totals else category
+            label = self.CATEGORY_LABELS.get(category, category)
+            value = self._format_size(size) if category_totals else label
             ctk.CTkLabel(
                 item,
-                text=f"{category}: {value}" if category_totals else value,
+                text=f"{label}: {value}" if category_totals else value,
                 text_color=self.MUTED,
                 font=ctk.CTkFont(family="Segoe UI", size=10),
             ).pack(side="left")
@@ -618,7 +691,16 @@ class GUIBuilder:
             "create_backup": self.var_backup.get(),
             "adobe_folder": self.user_folder,
             "browsers": {key: value.get() for key, value in self.browser_vars.items()},
+            "recycle_bin": self.var_recycle.get(),
+            "launchers": {key: value.get() for key, value in self.launcher_vars.items()},
+            "developer_mode": self.var_developer_mode.get(),
+            "developer_tools": {key: value.get() for key, value in self.developer_vars.items()},
         }
+
+    def _update_developer_state(self):
+        state = "normal" if self.var_developer_mode.get() and not self.is_busy else "disabled"
+        for widget in self.developer_widgets:
+            widget.configure(state=state)
 
     def _run_background_task(self, task_callback: Callable, options: dict, start_status: str):
         if self.is_busy:
@@ -627,7 +709,16 @@ class GUIBuilder:
         threading.Thread(target=task_callback, args=(options, self._update_progress), daemon=True).start()
 
     def _on_cleanup(self):
-        self._run_background_task(self.cleanup_callback, self._build_options(), "Подготовка к очистке...")
+        options = self._build_options()
+        if options["recycle_bin"]:
+            confirmed = messagebox.askyesno(
+                "Очистить корзину?",
+                "Файлы из корзины будут удалены безвозвратно и не попадут в ZIP-бэкап.\n\nПродолжить?",
+                parent=self.root,
+            )
+            if not confirmed:
+                return
+        self._run_background_task(self.cleanup_callback, options, "Подготовка к очистке...")
 
     def _on_scan(self):
         options = self._build_options()
@@ -656,6 +747,8 @@ class GUIBuilder:
                 widget.configure(state=state)
             except Exception:
                 pass
+        if not busy:
+            self._update_developer_state()
         if status:
             self.lbl_status.configure(text=status)
 

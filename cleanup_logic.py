@@ -1,14 +1,25 @@
+import ctypes
 import os
 import sys
 from typing import Dict, List, Optional, Tuple
 
-from utils import get_all_adobe_paths, get_browser_paths
+from utils import get_all_adobe_paths, get_browser_paths, get_developer_cache_paths, get_launcher_cache_paths
+
+
+class SHQUERYRBINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", ctypes.c_ulong),
+        ("i64Size", ctypes.c_longlong),
+        ("i64NumItems", ctypes.c_longlong),
+    ]
 
 
 class CleanupLogic:
     def __init__(self, logger=None):
         self.logger = logger
         self.browser_paths = get_browser_paths()
+        self.launcher_paths = get_launcher_cache_paths()
+        self.developer_paths = get_developer_cache_paths()
         self.skipped_files = 0
         self.skipped_bytes = 0
         runtime_dir = getattr(sys, "_MEIPASS", None)
@@ -161,6 +172,25 @@ class CleanupLogic:
                 for cache_path in self.browser_paths[browser_name]:
                     freed += self.clear_directory(cache_path)
 
+        return freed
+
+    def recycle_bin_size(self) -> int:
+        """Return the combined Recycle Bin size on all drives."""
+        info = SHQUERYRBINFO()
+        info.cbSize = ctypes.sizeof(info)
+        result = ctypes.windll.shell32.SHQueryRecycleBinW(None, ctypes.byref(info))
+        return max(0, int(info.i64Size)) if result == 0 else 0
+
+    def empty_recycle_bin(self) -> int:
+        """Empty the Recycle Bin silently after confirmation in the UI."""
+        size_before = self.recycle_bin_size()
+        flags = 0x00000001 | 0x00000002 | 0x00000004
+        result = ctypes.windll.shell32.SHEmptyRecycleBinW(None, None, flags)
+        if result not in (0, -2147418111):  # S_OK or user-cancel style result
+            self.log(f"Recycle Bin cleanup returned code: {result}")
+        size_after = self.recycle_bin_size()
+        freed = max(0, size_before - size_after)
+        self.log(f"Recycle Bin | Freed: {self.format_size(freed)}")
         return freed
 
     def scan_directory_files(self, path: str) -> List[str]:
