@@ -7,15 +7,15 @@ from backup_system import BackupSystem
 
 
 class RestoreWindow:
-    BG = "#080B14"
-    SURFACE = "#101522"
-    SURFACE_ALT = "#151B2B"
-    BORDER = "#242C40"
-    TEXT = "#F5F7FF"
-    MUTED = "#8E98AE"
-    PURPLE = "#7657FF"
-    CYAN = "#32D6C9"
-    RED = "#FF647C"
+    BG = "#0B0D10"
+    SURFACE = "#12151A"
+    SURFACE_ALT = "#181C23"
+    BORDER = "#262C35"
+    TEXT = "#F3F5F7"
+    MUTED = "#8D96A5"
+    PURPLE = "#6C8CFF"
+    CYAN = "#54D6C2"
+    RED = "#F07178"
 
     def __init__(self, parent, backup_system: BackupSystem):
         self.parent = parent
@@ -61,7 +61,7 @@ class RestoreWindow:
             border_color=self.BORDER,
             corner_radius=18,
             scrollbar_button_color=self.BORDER,
-            scrollbar_button_hover_color=self.PURPLE,
+            scrollbar_button_hover_color="#3A4350",
         )
         self.list_frame.grid(row=1, column=0, sticky="nsew", padx=24, pady=(0, 14))
         self.list_frame.grid_columnconfigure(0, weight=1)
@@ -83,8 +83,8 @@ class RestoreWindow:
             width=105,
             height=40,
             corner_radius=12,
-            fg_color="#39202A",
-            hover_color="#542D3A",
+            fg_color="#2A1C20",
+            hover_color="#3A252B",
             text_color=self.RED,
         ).grid(row=0, column=1, padx=6, pady=13)
         ctk.CTkButton(
@@ -95,7 +95,7 @@ class RestoreWindow:
             height=40,
             corner_radius=12,
             fg_color=self.BORDER,
-            hover_color="#303A52",
+            hover_color="#323A46",
         ).grid(row=0, column=2, padx=6, pady=13)
         ctk.CTkButton(
             actions,
@@ -105,7 +105,7 @@ class RestoreWindow:
             height=40,
             corner_radius=12,
             fg_color=self.PURPLE,
-            hover_color="#6545EE",
+            hover_color="#5879EC",
             font=ctk.CTkFont(size=13, weight="bold"),
         ).grid(row=0, column=3, padx=(6, 13), pady=13)
 
@@ -200,7 +200,7 @@ class RestoreWindow:
         self.selected_backup = backup_name
         for name, row in self.backup_rows.items():
             if name == backup_name:
-                row.configure(border_color=self.PURPLE, border_width=2, fg_color="#191A32")
+                row.configure(border_color=self.PURPLE, border_width=2, fg_color="#1A202C")
             else:
                 row.configure(border_color=self.BORDER, border_width=1, fg_color=self.SURFACE_ALT)
 

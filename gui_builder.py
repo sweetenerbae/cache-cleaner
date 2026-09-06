@@ -16,24 +16,24 @@ def resource_path(relative_path: str) -> str:
 
 
 class GUIBuilder:
-    BG = "#080B14"
-    SURFACE = "#101522"
-    SURFACE_ALT = "#151B2B"
-    BORDER = "#242C40"
-    TEXT = "#F5F7FF"
-    MUTED = "#8E98AE"
-    PURPLE = "#7657FF"
-    PURPLE_HOVER = "#6545EE"
-    CYAN = "#32D6C9"
-    GREEN = "#35D07F"
-    RED = "#FF647C"
-    TRACK = "#252C3D"
+    BG = "#0B0D10"
+    SURFACE = "#12151A"
+    SURFACE_ALT = "#181C23"
+    BORDER = "#262C35"
+    TEXT = "#F3F5F7"
+    MUTED = "#8D96A5"
+    PURPLE = "#6C8CFF"
+    PURPLE_HOVER = "#5879EC"
+    CYAN = "#54D6C2"
+    GREEN = "#5BD69D"
+    RED = "#F07178"
+    TRACK = "#252B34"
 
     CHART_COLORS = {
-        "Windows": "#7657FF",
-        "Adobe": "#FF8A5B",
-        "Discord": "#8C7CFF",
-        "Browsers": "#32D6C9",
+        "Windows": "#6C8CFF",
+        "Adobe": "#F2A365",
+        "Discord": "#A68AF0",
+        "Browsers": "#54D6C2",
     }
 
     def __init__(self, cleanup_callback: Callable, restore_callback: Callable, scan_callback: Callable):
@@ -57,11 +57,11 @@ class GUIBuilder:
             self.root.iconbitmap(resource_path("assets/cache_cleaner.ico"))
         except (OSError, tk.TclError):
             pass
-        self.root.geometry("980x720")
-        self.root.minsize(620, 520)
+        self.root.geometry("1040x800")
+        self.root.minsize(660, 560)
         self.root.resizable(True, True)
 
-        self._center_window(980, 720)
+        self._center_window(1040, 800)
         self._create_widgets()
         self.root.bind("<Configure>", self._on_root_configure)
         self.root.after_idle(lambda: self._apply_responsive_layout(self.root.winfo_width()))
@@ -90,10 +90,10 @@ class GUIBuilder:
             fg_color="transparent",
             corner_radius=0,
             scrollbar_button_color=self.BORDER,
-            scrollbar_button_hover_color=self.PURPLE,
+            scrollbar_button_hover_color="#3A4350",
         )
-        self.content.grid(row=1, column=0, sticky="nsew", padx=(24, 14), pady=(0, 8))
-        self.content.grid_columnconfigure(0, weight=11, uniform="content")
+        self.content.grid(row=1, column=0, sticky="nsew", padx=(28, 18), pady=(0, 12))
+        self.content.grid_columnconfigure(0, weight=10, uniform="content")
         self.content.grid_columnconfigure(1, weight=9, uniform="content")
 
         self._create_options_panel(self.content)
@@ -101,28 +101,26 @@ class GUIBuilder:
         self._create_action_bar()
 
     def _create_header(self):
-        header = ctk.CTkFrame(self.root, height=76, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=24, pady=(10, 8))
+        header = ctk.CTkFrame(self.root, height=82, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=30, pady=(14, 8))
         header.grid_columnconfigure(1, weight=1)
         header.grid_propagate(False)
 
         logo = ctk.CTkFrame(
             header,
-            width=58,
-            height=58,
-            corner_radius=18,
-            fg_color=self.SURFACE_ALT,
-            border_width=1,
-            border_color=self.BORDER,
+            width=54,
+            height=54,
+            corner_radius=15,
+            fg_color="#171B22",
         )
-        logo.grid(row=0, column=0, rowspan=2, padx=(0, 14), pady=7)
+        logo.grid(row=0, column=0, rowspan=2, padx=(0, 15), pady=8)
         logo.grid_propagate(False)
         try:
             logo_source = Image.open(resource_path("assets/cache_cleaner_logo.png"))
             self.logo_image = ctk.CTkImage(
                 light_image=logo_source,
                 dark_image=logo_source,
-                size=(50, 50),
+                size=(45, 45),
             )
             ctk.CTkLabel(logo, text="", image=self.logo_image).place(relx=0.5, rely=0.5, anchor="center")
         except OSError:
@@ -136,82 +134,88 @@ class GUIBuilder:
             header,
             text="Cache Cleaner",
             text_color=self.TEXT,
-            font=ctk.CTkFont(size=25, weight="bold"),
-        ).grid(row=0, column=1, sticky="sw", pady=(9, 0))
+            font=ctk.CTkFont(family="Segoe UI", size=24, weight="bold"),
+        ).grid(row=0, column=1, sticky="sw", pady=(10, 0))
         ctk.CTkLabel(
             header,
             text="Умная очистка без лишнего риска",
             text_color=self.MUTED,
-            font=ctk.CTkFont(size=13),
+            font=ctk.CTkFont(family="Segoe UI", size=12),
         ).grid(row=1, column=1, sticky="nw", pady=(2, 8))
 
         badge = ctk.CTkLabel(
             header,
-            text="●  SYSTEM READY",
-            text_color=self.CYAN,
-            fg_color="#102724",
-            corner_radius=13,
-            width=150,
-            height=32,
-            font=ctk.CTkFont(size=11, weight="bold"),
+            text="●  Система готова",
+            text_color=self.GREEN,
+            fg_color="#14231E",
+            corner_radius=12,
+            width=142,
+            height=34,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
         )
         badge.grid(row=0, column=2, rowspan=2, sticky="e")
 
     def _create_options_panel(self, parent):
         panel = self._card(parent)
         self.options_panel = panel
-        panel.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        panel.grid(row=0, column=0, sticky="nsew", padx=(0, 7))
         panel.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
             panel,
-            text="ЧТО ОЧИЩАЕМ",
-            text_color=self.MUTED,
-            font=ctk.CTkFont(size=11, weight="bold"),
-        ).grid(row=0, column=0, sticky="w", padx=20, pady=(18, 4))
+            text="План очистки",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=19, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=22, pady=(19, 0))
         ctk.CTkLabel(
             panel,
-            text="Выберите категории",
-            text_color=self.TEXT,
-            font=ctk.CTkFont(size=19, weight="bold"),
-        ).grid(row=1, column=0, sticky="w", padx=20, pady=(0, 12))
+            text="Выберите данные, которые можно удалить",
+            text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+        ).grid(row=1, column=0, sticky="w", padx=22, pady=(3, 13))
 
         categories = ctk.CTkFrame(panel, fg_color="transparent")
-        categories.grid(row=2, column=0, sticky="ew", padx=14)
-        categories.grid_columnconfigure((0, 1), weight=1, uniform="category")
+        categories.grid(row=2, column=0, sticky="ew", padx=17)
+        categories.grid_columnconfigure(0, weight=1)
 
-        self._category_tile(categories, 0, 0, "Windows", "Временные файлы", self.var_windows, self.PURPLE)
-        self._category_tile(categories, 0, 1, "Adobe", "Media Cache", self.var_adobe, "#FF8A5B")
-        self._category_tile(categories, 1, 0, "Discord", "Cache и GPUCache", self.var_discord, "#8C7CFF")
+        self._category_tile(categories, 0, 0, "Windows", "Временные файлы системы", self.var_windows, self.PURPLE)
+        self._category_tile(categories, 1, 0, "Adobe", "Media Cache и превью", self.var_adobe, "#F2A365")
+        self._category_tile(categories, 2, 0, "Discord", "Cache, Code Cache и GPUCache", self.var_discord, "#A68AF0")
 
         backup_tile = ctk.CTkFrame(
             categories,
-            fg_color="#11251E",
-            border_width=1,
-            border_color="#214936",
-            corner_radius=15,
-            height=72,
+            fg_color="#14201C",
+            corner_radius=12,
+            height=58,
         )
-        backup_tile.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+        backup_tile.grid(row=3, column=0, sticky="ew", padx=4, pady=(7, 4))
+        backup_tile.grid_columnconfigure(0, weight=1)
         backup_tile.grid_propagate(False)
-        backup_check = self._checkbox(
+        ctk.CTkLabel(
             backup_tile,
-            "Создать бэкап\nперед очисткой",
-            self.var_backup,
-            self.GREEN,
-        )
-        backup_check.place(x=14, rely=0.5, anchor="w")
+            text="Защита перед очисткой",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+        ).grid(row=0, column=0, sticky="sw", padx=14, pady=(9, 0))
+        ctk.CTkLabel(
+            backup_tile,
+            text="Сохранить ZIP-бэкап выбранных файлов",
+            text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+        ).grid(row=1, column=0, sticky="nw", padx=14, pady=(0, 8))
+        backup_switch = self._switch(backup_tile, self.var_backup, self.GREEN)
+        backup_switch.grid(row=0, column=1, rowspan=2, padx=14)
 
         ctk.CTkLabel(
             panel,
-            text="БРАУЗЕРЫ",
-            text_color=self.MUTED,
-            font=ctk.CTkFont(size=11, weight="bold"),
-        ).grid(row=3, column=0, sticky="w", padx=20, pady=(17, 8))
+            text="Браузеры",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+        ).grid(row=3, column=0, sticky="w", padx=22, pady=(15, 8))
         self._create_browsers_section(panel)
 
-        adobe_row = ctk.CTkFrame(panel, fg_color=self.SURFACE_ALT, corner_radius=14, height=66)
-        adobe_row.grid(row=5, column=0, sticky="ew", padx=18, pady=(15, 18))
+        adobe_row = ctk.CTkFrame(panel, fg_color="#15191F", corner_radius=12, height=58)
+        adobe_row.grid(row=5, column=0, sticky="ew", padx=21, pady=(13, 18))
         adobe_row.grid_columnconfigure(0, weight=1)
         adobe_row.grid_propagate(False)
 
@@ -219,15 +223,15 @@ class GUIBuilder:
         adobe_info.grid(row=0, column=0, sticky="w", padx=14)
         ctk.CTkLabel(
             adobe_info,
-            text="Папка Adobe",
+            text="Дополнительная папка Adobe",
             text_color=self.TEXT,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
         ).pack(anchor="w")
         self.lbl_adobe = ctk.CTkLabel(
             adobe_info,
             text="Автоматический поиск",
             text_color=self.MUTED,
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Segoe UI", size=10),
         )
         self.lbl_adobe.pack(anchor="w")
 
@@ -235,11 +239,12 @@ class GUIBuilder:
             adobe_row,
             text="Изменить",
             command=self._choose_adobe_folder,
-            width=92,
-            height=34,
-            corner_radius=11,
-            fg_color=self.BORDER,
-            hover_color="#303A52",
+            width=86,
+            height=32,
+            corner_radius=9,
+            fg_color="#252B34",
+            hover_color="#323A46",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
         )
         self.btn_adobe.grid(row=0, column=1, padx=14)
         self.control_widgets.append(self.btn_adobe)
@@ -247,28 +252,28 @@ class GUIBuilder:
     def _create_dashboard(self, parent):
         panel = self._card(parent)
         self.dashboard_panel = panel
-        panel.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        panel.grid(row=0, column=1, sticky="nsew", padx=(7, 0))
         panel.grid_columnconfigure(0, weight=1)
         panel.grid_rowconfigure(3, weight=1)
 
         ctk.CTkLabel(
             panel,
-            text="АНАЛИЗ ХРАНИЛИЩА",
-            text_color=self.MUTED,
-            font=ctk.CTkFont(size=11, weight="bold"),
-        ).grid(row=0, column=0, pady=(18, 0))
+            text="Результат анализа",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+        ).grid(row=0, column=0, pady=(20, 0))
         self.lbl_metric = ctk.CTkLabel(
             panel,
             text="—",
             text_color=self.TEXT,
-            font=ctk.CTkFont(size=35, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=34, weight="bold"),
         )
         self.lbl_metric.grid(row=1, column=0, pady=(4, 0))
         self.lbl_metric_hint = ctk.CTkLabel(
             panel,
             text="Запустите сканирование",
             text_color=self.MUTED,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
         )
         self.lbl_metric_hint.grid(row=2, column=0, pady=(0, 4))
 
@@ -286,23 +291,23 @@ class GUIBuilder:
         self.legend.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 12))
         self._render_legend({})
 
-        status_card = ctk.CTkFrame(panel, fg_color=self.SURFACE_ALT, corner_radius=14)
-        status_card.grid(row=5, column=0, sticky="ew", padx=18, pady=(0, 18))
+        status_card = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
+        status_card.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 18))
         status_card.grid_columnconfigure(0, weight=1)
 
         self.lbl_status = ctk.CTkLabel(
             status_card,
             text="Готово к работе",
             text_color=self.TEXT,
-            font=ctk.CTkFont(size=12, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
         )
         self.lbl_status.grid(row=0, column=0, sticky="w", padx=14, pady=(11, 7))
         self.progress = ctk.CTkProgressBar(
             status_card,
-            height=8,
-            corner_radius=4,
+            height=6,
+            corner_radius=3,
             fg_color=self.TRACK,
-            progress_color=self.CYAN,
+            progress_color=self.PURPLE,
         )
         self.progress.grid(row=1, column=0, sticky="ew", padx=14, pady=(0, 13))
         self.progress.set(0)
@@ -310,60 +315,61 @@ class GUIBuilder:
     def _create_action_bar(self):
         bar = ctk.CTkFrame(
             self.root,
-            height=74,
-            fg_color=self.SURFACE,
-            corner_radius=18,
-            border_width=1,
-            border_color=self.BORDER,
+            height=70,
+            fg_color="#111419",
+            corner_radius=16,
         )
-        bar.grid(row=2, column=0, sticky="ew", padx=24, pady=(0, 12))
+        bar.grid(row=2, column=0, sticky="ew", padx=28, pady=(0, 16))
         bar.grid_columnconfigure(0, weight=1)
         bar.grid_propagate(False)
 
         self.action_hint = ctk.CTkLabel(
             bar,
-            text="Сначала проверьте объём — затем очистите",
+            text="Готово к безопасной очистке",
             text_color=self.MUTED,
-            font=ctk.CTkFont(size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=11),
         )
         self.action_hint.grid(row=0, column=0, sticky="w", padx=18)
 
         self.btn_restore = ctk.CTkButton(
             bar,
-            text="↶  Бэкапы",
+            text="Бэкапы",
             command=self.restore_callback,
             width=118,
             height=44,
-            corner_radius=13,
-            fg_color=self.BORDER,
-            hover_color="#303A52",
+            corner_radius=11,
+            fg_color="transparent",
+            hover_color="#20252C",
+            border_width=1,
+            border_color=self.BORDER,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
         )
         self.btn_restore.grid(row=0, column=1, padx=(8, 0), pady=14)
 
         self.btn_scan = ctk.CTkButton(
             bar,
-            text="◎  Сканировать",
+            text="Сканировать",
             command=self._on_scan,
             width=156,
             height=44,
-            corner_radius=13,
-            fg_color="#1B4351",
-            hover_color="#245B6D",
-            text_color=self.CYAN,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            corner_radius=11,
+            fg_color="#202631",
+            hover_color="#2B3340",
+            text_color="#D9E2F2",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
         self.btn_scan.grid(row=0, column=2, padx=10, pady=14)
 
         self.btn_cleanup = ctk.CTkButton(
             bar,
-            text="✦  Начать очистку",
+            text="Начать очистку",
             command=self._on_cleanup,
             width=178,
             height=44,
-            corner_radius=13,
+            corner_radius=11,
             fg_color=self.PURPLE,
             hover_color=self.PURPLE_HOVER,
-            font=ctk.CTkFont(size=13, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
         self.btn_cleanup.grid(row=0, column=3, padx=(0, 18), pady=14)
 
@@ -390,7 +396,7 @@ class GUIBuilder:
             self.btn_scan.configure(width=140)
             self.btn_cleanup.configure(width=165)
         else:
-            self.content.grid_columnconfigure(0, weight=11, uniform="content")
+            self.content.grid_columnconfigure(0, weight=10, uniform="content")
             self.content.grid_columnconfigure(1, weight=9, uniform="content")
             self.options_panel.grid_configure(row=0, column=0, padx=(0, 8), pady=0)
             self.dashboard_panel.grid_configure(row=0, column=1, padx=(8, 0), pady=0)
@@ -404,10 +410,29 @@ class GUIBuilder:
         return ctk.CTkFrame(
             parent,
             fg_color=self.SURFACE,
-            corner_radius=20,
+            corner_radius=18,
             border_width=1,
-            border_color=self.BORDER,
+            border_color="#20252D",
         )
+
+    def _switch(self, parent, variable, accent):
+        switch = ctk.CTkSwitch(
+            parent,
+            text="",
+            variable=variable,
+            width=42,
+            height=22,
+            switch_width=42,
+            switch_height=22,
+            corner_radius=11,
+            border_width=0,
+            fg_color="#303640",
+            progress_color=accent,
+            button_color="#F5F7FA",
+            button_hover_color="#FFFFFF",
+        )
+        self.control_widgets.append(switch)
+        return switch
 
     def _checkbox(self, parent, text, variable, accent):
         checkbox = ctk.CTkCheckBox(
@@ -415,12 +440,12 @@ class GUIBuilder:
             text=text,
             variable=variable,
             text_color=self.TEXT,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            checkbox_width=22,
-            checkbox_height=22,
-            corner_radius=7,
-            border_width=2,
-            border_color="#4A546D",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            checkbox_width=19,
+            checkbox_height=19,
+            corner_radius=5,
+            border_width=1,
+            border_color="#4A5360",
             fg_color=accent,
             hover_color=accent,
         )
@@ -430,30 +455,40 @@ class GUIBuilder:
     def _category_tile(self, parent, row, column, title, subtitle, variable, accent):
         tile = ctk.CTkFrame(
             parent,
-            fg_color=self.SURFACE_ALT,
-            border_width=1,
-            border_color=self.BORDER,
-            corner_radius=15,
-            height=82,
+            fg_color="#171B21",
+            corner_radius=12,
+            height=61,
         )
-        tile.grid(row=row, column=column, sticky="nsew", padx=5, pady=5)
+        tile.grid(row=row, column=column, sticky="ew", padx=4, pady=4)
+        tile.grid_columnconfigure(1, weight=1)
         tile.grid_propagate(False)
 
-        accent_line = ctk.CTkFrame(
+        ctk.CTkFrame(
             tile,
-            width=4,
-            height=38,
-            corner_radius=2,
+            width=8,
+            height=8,
+            corner_radius=4,
             fg_color=accent,
-        )
-        accent_line.place(x=14, rely=0.5, anchor="w")
+        ).grid(row=0, column=0, rowspan=2, padx=(15, 12))
 
-        checkbox = self._checkbox(tile, f"{title}\n{subtitle}", variable, accent)
-        checkbox.place(x=28, rely=0.5, anchor="w")
+        ctk.CTkLabel(
+            tile,
+            text=title,
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+        ).grid(row=0, column=1, sticky="sw", pady=(9, 0))
+        ctk.CTkLabel(
+            tile,
+            text=subtitle,
+            text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+        ).grid(row=1, column=1, sticky="nw", pady=(0, 9))
+        switch = self._switch(tile, variable, accent)
+        switch.grid(row=0, column=2, rowspan=2, padx=14)
 
     def _create_browsers_section(self, parent):
-        browser_box = ctk.CTkFrame(parent, fg_color=self.SURFACE_ALT, corner_radius=14)
-        browser_box.grid(row=4, column=0, sticky="ew", padx=18)
+        browser_box = ctk.CTkFrame(parent, fg_color="#171B21", corner_radius=12)
+        browser_box.grid(row=4, column=0, sticky="ew", padx=21)
         browser_box.grid_columnconfigure((0, 1, 2), weight=1)
 
         self.browser_vars = {
@@ -470,24 +505,24 @@ class GUIBuilder:
                 text=title,
                 variable=self.browser_vars[key],
                 text_color=self.TEXT,
-                font=ctk.CTkFont(size=12),
-                checkbox_width=20,
-                checkbox_height=20,
-                corner_radius=6,
-                border_width=2,
-                border_color="#4A546D",
+                font=ctk.CTkFont(family="Segoe UI", size=11),
+                checkbox_width=18,
+                checkbox_height=18,
+                corner_radius=5,
+                border_width=1,
+                border_color="#4A5360",
                 fg_color=self.CYAN,
                 hover_color=self.CYAN,
             )
-            checkbox.grid(row=index // 3, column=index % 3, sticky="w", padx=14, pady=10)
+            checkbox.grid(row=index // 3, column=index % 3, sticky="w", padx=14, pady=9)
             self.control_widgets.append(checkbox)
 
     def _draw_donut(self, category_totals: Dict[str, int]):
         self.chart.delete("all")
-        x0, y0, x1, y1 = 34, 24, 226, 216
+        x0, y0, x1, y1 = 43, 30, 217, 204
         total = sum(category_totals.values())
 
-        self.chart.create_oval(x0, y0, x1, y1, outline=self.TRACK, width=28)
+        self.chart.create_oval(x0, y0, x1, y1, outline=self.TRACK, width=22)
         if total > 0:
             start = 90
             for category, size in category_totals.items():
@@ -503,23 +538,23 @@ class GUIBuilder:
                     extent=extent,
                     style="arc",
                     outline=self.CHART_COLORS.get(category, self.PURPLE),
-                    width=28,
+                    width=22,
                 )
                 start += extent
 
         self.chart.create_text(
             130,
-            110,
-            text="CACHE" if total == 0 else "НАЙДЕНО",
+            105,
+            text="КЭШ" if total == 0 else "НАЙДЕНО",
             fill=self.MUTED,
-            font=("Segoe UI", 9, "bold"),
+            font=("Segoe UI", 9),
         )
         self.chart.create_text(
             130,
-            136,
-            text="READY" if total == 0 else self._format_size(total),
+            132,
+            text="Готово" if total == 0 else self._format_size(total),
             fill=self.TEXT,
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 17, "bold"),
         )
 
     def _render_legend(self, category_totals: Dict[str, int]):
@@ -537,14 +572,14 @@ class GUIBuilder:
                 text="●",
                 text_color=self.CHART_COLORS.get(category, self.PURPLE),
                 width=16,
-                font=ctk.CTkFont(size=13),
+                font=ctk.CTkFont(family="Segoe UI", size=11),
             ).pack(side="left")
             value = self._format_size(size) if category_totals else category
             ctk.CTkLabel(
                 item,
                 text=f"{category}: {value}" if category_totals else value,
                 text_color=self.MUTED,
-                font=ctk.CTkFont(size=10),
+                font=ctk.CTkFont(family="Segoe UI", size=10),
             ).pack(side="left")
 
     @staticmethod
