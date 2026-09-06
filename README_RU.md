@@ -9,7 +9,7 @@
   [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
   [![Лицензия](https://img.shields.io/badge/лицензия-MIT-32D6C9?style=flat-square)](LICENSE)
 
-  [English](README.md) · [Русский](README_RU.md) · [Скачать EXE](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe)
+  [English](README.md) · [Русский](README_RU.md) · [Скачать EXE](https://github.com/sweetenerbae/cache-cleaner/releases/latest/download/cache_clear.exe)
 </div>
 
 ---
@@ -43,6 +43,7 @@
 - Поиск запущенных выбранных приложений с предложением закрыть их перед очисткой
 - Локальная статистика очищенного места и удалённых файлов с графиком за семь дней
 - Отображение текущего места, занятого сжатыми бэкапами
+- Проверка GitHub Releases и установка проверенного обновления EXE прямо из приложения
 - Круговая диаграмма с адаптивными капсулами категорий, обновляющаяся после очистки
 - Очистка временных файлов Windows
 - Очистка кэша Adobe, Discord, Telegram, Teams, Spotify, браузеров и игровых лаунчеров
@@ -62,7 +63,7 @@
 
 ## Быстрый запуск
 
-1. [Скачайте `cache_clear.exe`](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe).
+1. [Скачайте `cache_clear.exe`](https://github.com/sweetenerbae/cache-cleaner/releases/latest/download/cache_clear.exe).
 2. Запустите скачанный файл.
 3. Подтвердите запрос Windows на права администратора.
 4. Выберите категории и нажмите **Сканировать** или **Начать очистку**.
@@ -123,6 +124,17 @@ build_exe.bat
 
 Он собирает приложение отдельно, ждёт закрытия запущенного Cache Cleaner и помещает результат в `dist\cache_clear.exe`.
 
+## Публикация релиза
+
+Отправьте тег версии, чтобы GitHub Actions автоматически собрал и опубликовал `cache_clear.exe`:
+
+```bat
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Версия из тега встраивается в релизную сборку. Пользователь установленного EXE может проверить свежий релиз в боковом меню и подтвердить автоматическое обновление.
+
 ## Структура проекта
 
 ```text
@@ -132,6 +144,8 @@ gui_builder.py       Предыдущая версия интерфейса дл
 cleanup_logic.py     Сканирование и очистка
 statistics_store.py  Локальная история очистки и показатели статистики
 process_guard.py     Поиск и закрытие запущенных приложений
+update_manager.py    Проверка GitHub Releases и установка обновлений EXE
+version.py           Текущая версия приложения
 backup_system.py     Создание и восстановление бэкапов
 restore_window.py    Интерфейс управления бэкапами
 utils.py             Пути Windows и общие модели данных

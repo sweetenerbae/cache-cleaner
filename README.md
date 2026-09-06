@@ -9,7 +9,7 @@
   [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
   [![License](https://img.shields.io/badge/license-MIT-32D6C9?style=flat-square)](LICENSE)
 
-  [English](README.md) · [Русский](README_RU.md) · [Download EXE](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe)
+  [English](README.md) · [Русский](README_RU.md) · [Download EXE](https://github.com/sweetenerbae/cache-cleaner/releases/latest/download/cache_clear.exe)
 </div>
 
 ---
@@ -43,6 +43,7 @@
 - Detect selected applications that are still running and offer to close them before cleanup
 - Track cleaned space and deleted files locally, with a seven-day chart and top categories
 - Show the current disk space occupied by compressed backups
+- Check GitHub Releases and install verified EXE updates from inside the application
 - Live donut chart with adaptive category capsules, refreshed after cleanup
 - Clean Windows temporary files
 - Clean Adobe, Discord, Telegram, Teams, Spotify, browser, and game-launcher caches
@@ -62,7 +63,7 @@
 
 ## Quick start
 
-1. [Download `cache_clear.exe`](https://github.com/sweetenerbae/cache-cleaner/raw/refs/heads/main/dist/cache_clear.exe).
+1. [Download `cache_clear.exe`](https://github.com/sweetenerbae/cache-cleaner/releases/latest/download/cache_clear.exe).
 2. Run the downloaded file.
 3. Accept the Windows administrator prompt.
 4. Select the categories and click **Scan** or **Start cleanup**.
@@ -123,6 +124,17 @@ build_exe.bat
 
 It builds the application separately, waits if Cache Cleaner is still running, and then places the result in `dist\cache_clear.exe`.
 
+## Publish a release
+
+Push a version tag to build and publish `cache_clear.exe` automatically with GitHub Actions:
+
+```bat
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+The tag version is embedded into the release build. Installed EXE versions can check the latest published release from the sidebar and update themselves after confirmation.
+
 ## Project structure
 
 ```text
@@ -132,6 +144,8 @@ gui_builder.py       Previous interface kept for reference
 cleanup_logic.py     Scanning and cleanup logic
 statistics_store.py  Local cleanup history and dashboard metrics
 process_guard.py     Running-application detection and closing
+update_manager.py    GitHub Releases checks and verified EXE updates
+version.py           Current application version
 backup_system.py     Backup creation and restoration
 restore_window.py    Backup manager interface
 utils.py             Windows paths and shared data models

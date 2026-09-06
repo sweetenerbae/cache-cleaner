@@ -9,6 +9,7 @@ from typing import Callable, Dict, Optional
 
 import customtkinter as ctk
 from PIL import Image, ImageDraw
+from version import APP_VERSION
 
 
 def resource_path(relative_path: str) -> str:
@@ -72,6 +73,8 @@ class GUIBuilder:
         statistics_callback: Optional[Callable] = None,
         running_apps_callback: Optional[Callable] = None,
         close_apps_callback: Optional[Callable] = None,
+        check_update_callback: Optional[Callable] = None,
+        install_update_callback: Optional[Callable] = None,
     ):
         self.cleanup_callback = cleanup_callback
         self.restore_callback = restore_callback
@@ -79,6 +82,8 @@ class GUIBuilder:
         self.statistics_callback = statistics_callback
         self.running_apps_callback = running_apps_callback
         self.close_apps_callback = close_apps_callback
+        self.check_update_callback = check_update_callback
+        self.install_update_callback = install_update_callback
         self.root: Optional[ctk.CTk] = None
         self.user_folder: Optional[str] = None
         self.is_busy = False
@@ -287,20 +292,24 @@ class GUIBuilder:
         self.nav_buttons["backups"] = backup_button
         self.control_widgets.append(backup_button)
 
-        footer = ctk.CTkFrame(
-            self.sidebar_glass, fg_color="#1B1B0F", corner_radius=14,
-            border_width=1, border_color="#4A4718",
-        )
-        footer.grid(row=3, column=0, sticky="ew", padx=14, pady=18)
-        self.sidebar_status_icon = ctk.CTkLabel(
-            footer, text="", image=self._brand_image("backup", 24), width=32
-        )
-        self.sidebar_status_icon.pack(side="left", padx=(12, 5), pady=12)
-        self.sidebar_status_text = ctk.CTkLabel(
-            footer, text="Безопасная\nочистка", justify="left", text_color=self.GREEN,
+        self.sidebar_update_button = ctk.CTkButton(
+            self.sidebar_glass,
+            text=f"Проверить обновления\nВерсия {APP_VERSION}",
+            image=self._statistics_image(24),
+            compound="left",
+            anchor="w",
+            command=self._on_check_updates,
+            height=58,
+            fg_color="#1B1B0F",
+            hover_color="#2B2A12",
+            corner_radius=14,
+            border_width=1,
+            border_color="#4A4718",
+            text_color=self.GREEN,
             font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
         )
-        self.sidebar_status_text.pack(side="left", pady=10)
+        self.sidebar_update_button.grid(row=3, column=0, sticky="ew", padx=14, pady=18)
+        self.control_widgets.append(self.sidebar_update_button)
 
     def _create_header(self):
         header = ctk.CTkFrame(self.main_shell, height=92, fg_color="transparent")
@@ -1214,6 +1223,89 @@ class GUIBuilder:
         options["create_backup"] = False
         self._run_background_task(self.scan_callback, options, "Анализируем выбранные категории...")
 
+    def _on_check_updates(self):
+        if self.is_busy or not self.check_update_callback:
+            return
+        self.set_busy(True, "Проверяем GitHub Releases...")
+        self.sidebar_update_button.configure(text="Проверяем обновления...")
+        threading.Thread(target=self._check_updates_worker, daemon=True).start()
+
+    def _check_updates_worker(self):
+        try:
+            result = self.check_update_callback() or {"status": "error"}
+        except Exception as error:
+            result = {"status": "error", "message": str(error)}
+        if self.root:
+            self.root.after(0, self._handle_update_check, result)
+
+    def _handle_update_check(self, result):
+        self._reset_progress_ui()
+        self.sidebar_update_button.configure(text=f"Проверить обновления\nВерсия {APP_VERSION}")
+        status = result.get("status")
+        if status == "no_releases":
+            messagebox.showinfo(
+                "Обновления", "В репозитории пока нет опубликованных GitHub Releases.", parent=self.root
+            )
+            return
+        if status == "current":
+            messagebox.showinfo(
+                "Обновления", f"Установлена актуальная версия {APP_VERSION}.", parent=self.root
+            )
+            return
+        if status != "available":
+            messagebox.showerror(
+                "Ошибка обновления",
+                result.get("message", "Не удалось проверить обновления."),
+                parent=self.root,
+            )
+            return
+        if not result.get("asset"):
+            messagebox.showwarning(
+                "Обновление найдено",
+                f"Доступна версия {result.get('latest_version')}, но в релизе нет файла cache_clear.exe.",
+                parent=self.root,
+            )
+            return
+        notes = str(result.get("notes", "")).strip()
+        if len(notes) > 700:
+            notes = notes[:697] + "..."
+        confirmed = messagebox.askyesno(
+            "Доступно обновление",
+            f"Новая версия: {result.get('latest_version')}\n"
+            f"Текущая версия: {APP_VERSION}\n\n{notes}\n\nСкачать и установить?",
+            parent=self.root,
+        )
+        if not confirmed:
+            return
+        self.set_busy(True, "Загрузка обновления...")
+        self.sidebar_update_button.configure(text="Загружаем обновление...")
+        threading.Thread(target=self._install_update_worker, args=(result,), daemon=True).start()
+
+    def _install_update_worker(self, release):
+        try:
+            result = self.install_update_callback(release, self._update_progress)
+        except Exception as error:
+            result = {"status": "error", "message": str(error)}
+        if self.root:
+            self.root.after(0, self._handle_update_install, result)
+
+    def _handle_update_install(self, result):
+        self._reset_progress_ui()
+        self.sidebar_update_button.configure(text=f"Проверить обновления\nВерсия {APP_VERSION}")
+        if result.get("status") == "scheduled":
+            messagebox.showinfo(
+                "Обновление загружено",
+                "Приложение сейчас закроется. Новая версия установится и запустится автоматически.",
+                parent=self.root,
+            )
+            self.root.destroy()
+            return
+        messagebox.showerror(
+            "Ошибка обновления",
+            result.get("message", "Не удалось установить обновление."),
+            parent=self.root,
+        )
+
     def _update_progress(self, value: int, status: str):
         if self.root:
             self.root.after(0, self._apply_progress_update, value, status)
@@ -1326,13 +1418,14 @@ class GUIBuilder:
         if compact:
             self.brand_title.grid_remove()
             self.brand_subtitle.grid_remove()
-            self.sidebar_status_text.pack_forget()
+            self.sidebar_update_button.configure(text="", width=52, anchor="center")
             self.action_hint.grid_remove()
         else:
             self.brand_title.grid()
             self.brand_subtitle.grid()
-            if not self.sidebar_status_text.winfo_manager():
-                self.sidebar_status_text.pack(side="left", pady=10)
+            self.sidebar_update_button.configure(
+                text=f"Проверить обновления\nВерсия {APP_VERSION}", width=176, anchor="w"
+            )
             self.action_hint.grid()
         for name, button in self.nav_buttons.items():
             button.configure(

@@ -8,6 +8,7 @@ from gui_builder_v2 import GUIBuilder
 from process_guard import close_running_apps, find_running_apps
 from restore_window import RestoreWindow
 from statistics_store import StatisticsStore
+from update_manager import UpdateManager
 from utils import (
     BackupType,
     get_all_adobe_paths,
@@ -24,6 +25,7 @@ class CacheCleanerApp:
         self.log_file = "cleanup_log.txt"
         self.backup_system = BackupSystem()
         self.statistics = StatisticsStore(self.backup_system.backup_dir)
+        self.update_manager = UpdateManager()
         self.cleanup_logic = CleanupLogic(logger=self.log)
         self.gui_builder = None
 
@@ -305,6 +307,8 @@ class CacheCleanerApp:
             statistics_callback=self.statistics.snapshot,
             running_apps_callback=find_running_apps,
             close_apps_callback=close_running_apps,
+            check_update_callback=self.update_manager.check_latest,
+            install_update_callback=self.update_manager.download_and_install,
         )
 
         root = self.gui_builder.setup_gui()
