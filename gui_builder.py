@@ -57,11 +57,11 @@ class GUIBuilder:
             self.root.iconbitmap(resource_path("assets/cache_cleaner.ico"))
         except (OSError, tk.TclError):
             pass
-        self.root.geometry("1040x800")
+        self.root.geometry("1040x860")
         self.root.minsize(660, 560)
         self.root.resizable(True, True)
 
-        self._center_window(1040, 800)
+        self._center_window(1040, 860)
         self._create_widgets()
         self.root.bind("<Configure>", self._on_root_configure)
         self.root.after_idle(lambda: self._apply_responsive_layout(self.root.winfo_width()))
@@ -186,9 +186,9 @@ class GUIBuilder:
             categories,
             fg_color="#14201C",
             corner_radius=12,
-            height=58,
+            height=64,
         )
-        backup_tile.grid(row=3, column=0, sticky="ew", padx=4, pady=(7, 4))
+        backup_tile.grid(row=3, column=0, sticky="ew", padx=4, pady=(9, 5))
         backup_tile.grid_columnconfigure(0, weight=1)
         backup_tile.grid_propagate(False)
         ctk.CTkLabel(
@@ -196,13 +196,13 @@ class GUIBuilder:
             text="Защита перед очисткой",
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-        ).grid(row=0, column=0, sticky="sw", padx=14, pady=(9, 0))
+        ).grid(row=0, column=0, sticky="sw", padx=15, pady=(11, 0))
         ctk.CTkLabel(
             backup_tile,
             text="Сохранить ZIP-бэкап выбранных файлов",
             text_color=self.MUTED,
             font=ctk.CTkFont(family="Segoe UI", size=10),
-        ).grid(row=1, column=0, sticky="nw", padx=14, pady=(0, 8))
+        ).grid(row=1, column=0, sticky="nw", padx=15, pady=(1, 10))
         backup_switch = self._switch(backup_tile, self.var_backup, self.GREEN)
         backup_switch.grid(row=0, column=1, rowspan=2, padx=14)
 
@@ -456,10 +456,10 @@ class GUIBuilder:
         tile = ctk.CTkFrame(
             parent,
             fg_color="#171B21",
-            corner_radius=12,
-            height=61,
+            corner_radius=13,
+            height=72,
         )
-        tile.grid(row=row, column=column, sticky="ew", padx=4, pady=4)
+        tile.grid(row=row, column=column, sticky="ew", padx=4, pady=5)
         tile.grid_columnconfigure(1, weight=1)
         tile.grid_propagate(False)
 
@@ -476,13 +476,13 @@ class GUIBuilder:
             text=title,
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-        ).grid(row=0, column=1, sticky="sw", pady=(9, 0))
+        ).grid(row=0, column=1, sticky="sw", pady=(12, 0))
         ctk.CTkLabel(
             tile,
             text=subtitle,
             text_color=self.MUTED,
             font=ctk.CTkFont(family="Segoe UI", size=10),
-        ).grid(row=1, column=1, sticky="nw", pady=(0, 9))
+        ).grid(row=1, column=1, sticky="nw", pady=(2, 12))
         switch = self._switch(tile, variable, accent)
         switch.grid(row=0, column=2, rowspan=2, padx=14)
 
