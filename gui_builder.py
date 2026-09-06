@@ -360,47 +360,48 @@ class GUIBuilder:
     def _create_dashboard(self, parent):
         panel = self._card(parent)
         self.dashboard_panel = panel
-        panel.grid(row=0, column=1, sticky="nsew", padx=(7, 0))
+        panel.grid(row=0, column=1, sticky="new", padx=(7, 0))
         panel.grid_columnconfigure(0, weight=1)
-        panel.grid_rowconfigure(3, weight=1)
+        panel.grid_rowconfigure(5, weight=1)
 
         ctk.CTkLabel(
             panel,
             text="Результат анализа",
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
-        ).grid(row=0, column=0, pady=(20, 0))
+        ).grid(row=0, column=0, pady=(16, 0))
         self.lbl_metric = ctk.CTkLabel(
             panel,
             text="—",
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=34, weight="bold"),
         )
-        self.lbl_metric.grid(row=1, column=0, pady=(4, 0))
+        self.lbl_metric.grid(row=1, column=0, pady=(2, 0))
         self.lbl_metric_hint = ctk.CTkLabel(
             panel,
             text="Запустите сканирование",
             text_color=self.MUTED,
             font=ctk.CTkFont(family="Segoe UI", size=11),
         )
-        self.lbl_metric_hint.grid(row=2, column=0, pady=(0, 4))
+        self.lbl_metric_hint.grid(row=2, column=0, pady=(0, 2))
 
         self.chart = tk.Canvas(
             panel,
             width=260,
-            height=225,
+            height=205,
             bg=self.SURFACE,
             highlightthickness=0,
         )
-        self.chart.grid(row=3, column=0, pady=(0, 0))
+        self.chart.grid(row=3, column=0, pady=0)
         self._draw_donut({})
 
         self.legend = ctk.CTkFrame(panel, fg_color="transparent")
-        self.legend.grid(row=4, column=0, sticky="ew", padx=24, pady=(0, 12))
+        self.legend.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 8))
+        self.legend.grid_columnconfigure((0, 1), weight=1, uniform="legend")
         self._render_legend({})
 
         status_card = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
-        status_card.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 18))
+        status_card.grid(row=6, column=0, sticky="ew", padx=20, pady=(8, 18))
         status_card.grid_columnconfigure(0, weight=1)
 
         self.lbl_status = ctk.CTkLabel(
@@ -650,7 +651,7 @@ class GUIBuilder:
 
     def _draw_donut(self, category_totals: Dict[str, int]):
         self.chart.delete("all")
-        x0, y0, x1, y1 = 43, 30, 217, 204
+        x0, y0, x1, y1 = 43, 15, 217, 189
         total = sum(category_totals.values())
 
         self.chart.create_oval(x0, y0, x1, y1, outline=self.TRACK, width=22)
@@ -675,14 +676,14 @@ class GUIBuilder:
 
         self.chart.create_text(
             130,
-            105,
+            90,
             text="КЭШ" if total == 0 else "НАЙДЕНО",
             fill=self.MUTED,
             font=("Segoe UI", 9),
         )
         self.chart.create_text(
             130,
-            132,
+            117,
             text="Готово" if total == 0 else self._format_size(total),
             fill=self.TEXT,
             font=("Segoe UI", 17, "bold"),
@@ -696,22 +697,30 @@ class GUIBuilder:
         for index, (category, size) in enumerate(values.items()):
             row = index // 2
             column = index % 2
-            item = ctk.CTkFrame(self.legend, fg_color="transparent")
-            item.grid(row=row, column=column, sticky="w", padx=8, pady=3)
+            item = ctk.CTkFrame(
+                self.legend,
+                height=34,
+                fg_color=self.SURFACE_ALT,
+                corner_radius=13,
+                border_width=1,
+                border_color="#252B34",
+            )
+            item.grid(row=row, column=column, sticky="ew", padx=4, pady=4)
+            item.grid_propagate(False)
             ctk.CTkLabel(
                 item,
                 text="●",
                 text_color=self.CHART_COLORS.get(category, self.PURPLE),
-                width=16,
-                font=ctk.CTkFont(family="Segoe UI", size=11),
-            ).pack(side="left")
+                width=18,
+                font=ctk.CTkFont(family="Segoe UI", size=12),
+            ).pack(side="left", padx=(9, 2))
             label = self.CATEGORY_LABELS.get(category, category)
             value = self._format_size(size) if category_totals else label
             ctk.CTkLabel(
                 item,
                 text=f"{label}: {value}" if category_totals else value,
-                text_color=self.MUTED,
-                font=ctk.CTkFont(family="Segoe UI", size=10),
+                text_color="#C8D0DC",
+                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             ).pack(side="left")
 
     @staticmethod
