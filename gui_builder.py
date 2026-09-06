@@ -191,20 +191,24 @@ class GUIBuilder:
         backup_tile.grid(row=3, column=0, sticky="ew", padx=4, pady=(9, 5))
         backup_tile.grid_columnconfigure(0, weight=1)
         backup_tile.grid_propagate(False)
+        backup_text = ctk.CTkFrame(backup_tile, fg_color="transparent")
+        backup_text.place(x=15, rely=0.5, anchor="w")
         ctk.CTkLabel(
-            backup_tile,
+            backup_text,
             text="Защита перед очисткой",
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-        ).grid(row=0, column=0, sticky="sw", padx=15, pady=(11, 0))
+            height=17,
+        ).pack(anchor="w")
         ctk.CTkLabel(
-            backup_tile,
+            backup_text,
             text="Сохранить ZIP-бэкап выбранных файлов",
             text_color=self.MUTED,
             font=ctk.CTkFont(family="Segoe UI", size=10),
-        ).grid(row=1, column=0, sticky="nw", padx=15, pady=(1, 10))
+            height=14,
+        ).pack(anchor="w", pady=(1, 0))
         backup_switch = self._switch(backup_tile, self.var_backup, self.GREEN)
-        backup_switch.grid(row=0, column=1, rowspan=2, padx=14)
+        backup_switch.place(relx=1.0, x=-14, rely=0.5, anchor="e")
 
         ctk.CTkLabel(
             panel,
@@ -463,28 +467,33 @@ class GUIBuilder:
         tile.grid_columnconfigure(1, weight=1)
         tile.grid_propagate(False)
 
-        ctk.CTkFrame(
+        accent_dot = ctk.CTkFrame(
             tile,
             width=8,
             height=8,
             corner_radius=4,
             fg_color=accent,
-        ).grid(row=0, column=0, rowspan=2, padx=(15, 12))
+        )
+        accent_dot.place(x=15, rely=0.5, anchor="w")
 
+        text_block = ctk.CTkFrame(tile, fg_color="transparent")
+        text_block.place(x=35, rely=0.5, anchor="w")
         ctk.CTkLabel(
-            tile,
+            text_block,
             text=title,
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-        ).grid(row=0, column=1, sticky="sw", pady=(12, 0))
+            height=17,
+        ).pack(anchor="w")
         ctk.CTkLabel(
-            tile,
+            text_block,
             text=subtitle,
             text_color=self.MUTED,
             font=ctk.CTkFont(family="Segoe UI", size=10),
-        ).grid(row=1, column=1, sticky="nw", pady=(2, 12))
+            height=14,
+        ).pack(anchor="w", pady=(1, 0))
         switch = self._switch(tile, variable, accent)
-        switch.grid(row=0, column=2, rowspan=2, padx=14)
+        switch.place(relx=1.0, x=-14, rely=0.5, anchor="e")
 
     def _create_browsers_section(self, parent):
         browser_box = ctk.CTkFrame(parent, fg_color="#171B21", corner_radius=12)
