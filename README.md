@@ -38,13 +38,14 @@
 - Scan selected locations before deleting anything
 - Live donut chart grouped by category and refreshed after cleanup
 - Clean Windows temporary files
-- Clean Adobe, Discord, browser, and game-launcher caches
+- Clean Adobe, Discord, Telegram, Teams, Spotify, browser, and game-launcher caches
 - Optional developer mode for pip, npm, pnpm, Yarn, Gradle, and NuGet caches
 - Scan and empty the Windows Recycle Bin with a separate confirmation
 - Support Chrome, Firefox, Edge, Brave, and Yandex Browser
 - Official brand icons embedded into the application
 - Create compressed ZIP backups and verify their integrity before cleanup
 - Restore a backup or select and delete several old backups at once
+- Optional automatic deletion of backups older than 7, 30, or 90 days
 - Remind the user when old backups continue to occupy disk space
 - Show the exact cleaned and remaining size
 - Report files that Windows or running applications have locked
@@ -59,7 +60,7 @@
 
 Python is not required for the ready-to-use EXE. Windows SmartScreen may display a warning because the executable is not code-signed.
 
-> Close browsers, Discord, Adobe applications, and selected game launchers before cleaning. Files currently used by Windows or another application are safely skipped.
+> Close browsers and selected applications before cleaning. Files currently used by Windows or another application are safely skipped.
 
 ## What is cleaned
 
@@ -68,6 +69,7 @@ Python is not required for the ready-to-use EXE. Windows SmartScreen may display
 | Windows | User temporary files, `Windows\Temp`, Prefetch |
 | Adobe | Media Cache, Media Cache Files, selected custom cache folder |
 | Discord | Cache, Code Cache, GPUCache |
+| Applications | Telegram media cache, Microsoft Teams cache, Spotify UI and media cache |
 | Browsers | Chrome, Firefox, Edge, Brave, Yandex Browser caches |
 | Game launchers | Steam web/UI cache, Epic Games Launcher web cache, Battle.net cache |
 | Developer mode | pip, npm, pnpm, Yarn, Gradle, NuGet dependency caches |
@@ -87,7 +89,7 @@ When backup protection is enabled, Cache Cleaner creates a compressed ZIP archiv
 
 Runtime logs and backup files are excluded from Git. They are not uploaded to this repository by normal commits.
 
-The backup center displays the original and compressed sizes. It supports restoring one backup and selecting multiple backups for quick deletion. Cache Cleaner reminds you after cleanup when a newly created backup is still taking up disk space.
+The backup center displays the original and compressed sizes. It supports restoring one backup, selecting multiple backups for quick deletion, and automatically removing copies older than 7, 30, or 90 days. Automatic deletion is disabled by default. Cache Cleaner reminds you after cleanup when a newly created backup is still taking up disk space.
 
 Cache Cleaner does not collect telemetry or upload scanned paths, logs, or backups. All scanning, cleanup, and recovery operations run locally.
 

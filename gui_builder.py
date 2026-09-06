@@ -34,6 +34,7 @@ class GUIBuilder:
         "Adobe": "#F2A365",
         "Discord": "#A68AF0",
         "Browsers": "#54D6C2",
+        "Applications": "#38BDF8",
         "Launchers": "#45B7F1",
         "Developer": "#F4C95D",
         "Recycle Bin": "#F07178",
@@ -43,6 +44,7 @@ class GUIBuilder:
         "Adobe": "Adobe",
         "Discord": "Discord",
         "Browsers": "Браузеры",
+        "Applications": "Приложения",
         "Launchers": "Лаунчеры",
         "Developer": "Dev-кэш",
         "Recycle Bin": "Корзина",
@@ -241,8 +243,30 @@ class GUIBuilder:
         ).grid(row=3, column=0, sticky="w", padx=22, pady=(15, 8))
         self._create_browsers_section(panel)
 
+        ctk.CTkLabel(
+            panel,
+            text="Приложения",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+        ).grid(row=5, column=0, sticky="w", padx=22, pady=(14, 8))
+
+        application_box = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
+        application_box.grid(row=6, column=0, sticky="ew", padx=21)
+        application_box.grid_columnconfigure((0, 1, 2), weight=1)
+        self.application_vars = {
+            "telegram": ctk.BooleanVar(value=False),
+            "teams": ctk.BooleanVar(value=False),
+            "spotify": ctk.BooleanVar(value=False),
+        }
+        for column, (key, title) in enumerate((
+            ("telegram", "Telegram"), ("teams", "Teams"), ("spotify", "Spotify"),
+        )):
+            self._checkbox(application_box, title, self.application_vars[key], "#38BDF8", key).grid(
+                row=0, column=column, sticky="w", padx=13, pady=12
+            )
+
         adobe_row = ctk.CTkFrame(panel, fg_color="#15191F", corner_radius=12, height=58)
-        adobe_row.grid(row=5, column=0, sticky="ew", padx=21, pady=(13, 18))
+        adobe_row.grid(row=7, column=0, sticky="ew", padx=21, pady=(13, 18))
         adobe_row.grid_columnconfigure(0, weight=1)
         adobe_row.grid_propagate(False)
 
@@ -281,10 +305,10 @@ class GUIBuilder:
             text="Игровые лаунчеры",
             text_color=self.TEXT,
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-        ).grid(row=6, column=0, sticky="w", padx=22, pady=(0, 8))
+        ).grid(row=8, column=0, sticky="w", padx=22, pady=(0, 8))
 
         launcher_box = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
-        launcher_box.grid(row=7, column=0, sticky="ew", padx=21)
+        launcher_box.grid(row=9, column=0, sticky="ew", padx=21)
         launcher_box.grid_columnconfigure((0, 1, 2), weight=1)
         self.launcher_vars = {
             "steam": ctk.BooleanVar(value=False),
@@ -299,7 +323,7 @@ class GUIBuilder:
             )
 
         developer_header = ctk.CTkFrame(panel, fg_color="#1F1D16", corner_radius=12, height=58)
-        developer_header.grid(row=8, column=0, sticky="ew", padx=21, pady=(14, 8))
+        developer_header.grid(row=10, column=0, sticky="ew", padx=21, pady=(14, 8))
         developer_header.grid_columnconfigure(0, weight=1)
         developer_header.grid_propagate(False)
         developer_text = ctk.CTkFrame(developer_header, fg_color="transparent")
@@ -317,7 +341,7 @@ class GUIBuilder:
         developer_switch.grid(row=0, column=1, padx=14)
 
         developer_box = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
-        developer_box.grid(row=9, column=0, sticky="ew", padx=21, pady=(0, 18))
+        developer_box.grid(row=11, column=0, sticky="ew", padx=21, pady=(0, 18))
         developer_box.grid_columnconfigure((0, 1, 2), weight=1)
         self.developer_vars = {
             key: ctk.BooleanVar(value=True)
@@ -717,6 +741,7 @@ class GUIBuilder:
             "create_backup": self.var_backup.get(),
             "adobe_folder": self.user_folder,
             "browsers": {key: value.get() for key, value in self.browser_vars.items()},
+            "applications": {key: value.get() for key, value in self.application_vars.items()},
             "recycle_bin": self.var_recycle.get(),
             "launchers": {key: value.get() for key, value in self.launcher_vars.items()},
             "developer_mode": self.var_developer_mode.get(),

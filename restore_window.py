@@ -57,6 +57,32 @@ class RestoreWindow:
             font=ctk.CTkFont(family="Segoe UI", size=11),
         ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
+        self.retention_values = {
+            "Автоудаление выключено": 0,
+            "Старше 7 дней": 7,
+            "Старше 30 дней": 30,
+            "Старше 90 дней": 90,
+        }
+        current_retention = next(
+            (label for label, days in self.retention_values.items()
+             if days == self.backup_system.auto_cleanup_days),
+            "Автоудаление выключено",
+        )
+        self.retention_menu = ctk.CTkOptionMenu(
+            header,
+            values=list(self.retention_values),
+            variable=ctk.StringVar(value=current_retention),
+            command=self._change_retention,
+            width=180,
+            height=34,
+            corner_radius=10,
+            fg_color="#202631",
+            button_color="#2B3340",
+            button_hover_color="#364152",
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+        )
+        self.retention_menu.grid(row=0, column=1, rowspan=2, sticky="e", padx=(12, 0))
+
         selection_bar = ctk.CTkFrame(self.window, fg_color="transparent")
         selection_bar.grid(row=1, column=0, sticky="ew", padx=26, pady=(0, 9))
         selection_bar.grid_columnconfigure(0, weight=1)
@@ -257,6 +283,26 @@ class RestoreWindow:
                 text_color=details_color,
                 font=ctk.CTkFont(family="Segoe UI", size=10),
             ).grid(row=1, column=1, sticky="nw", pady=(2, 13))
+
+    def _change_retention(self, selected_value: str):
+        days = self.retention_values.get(selected_value, 0)
+        try:
+            self.backup_system.set_auto_cleanup_days(days)
+            deleted_count, freed_bytes = self.backup_system.delete_expired_backups()
+            self.load_backups()
+            if deleted_count:
+                messagebox.showinfo(
+                    "Автоочистка бэкапов",
+                    f"Удалено старых бэкапов: {deleted_count}\n"
+                    f"Освобождено: {self._format_size(freed_bytes)}",
+                    parent=self.window,
+                )
+        except (OSError, PermissionError) as error:
+            messagebox.showerror(
+                "Ошибка",
+                f"Не удалось сохранить настройку:\n{error}",
+                parent=self.window,
+            )
 
     def _toggle_backup(self, backup_name: str):
         if self.backup_vars[backup_name].get():

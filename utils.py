@@ -183,6 +183,57 @@ def get_developer_cache_paths() -> Dict[str, List[str]]:
         ]),
     }
 
+
+def get_application_cache_paths() -> Dict[str, List[str]]:
+    """Discover caches for communication and media applications."""
+    local = os.getenv("LOCALAPPDATA")
+    roaming = os.getenv("APPDATA")
+
+    telegram_paths: List[Optional[str]] = [
+        os.path.join(roaming, "Telegram Desktop", "tdata", "temp") if roaming else None,
+    ]
+    if roaming:
+        telegram_data = os.path.join(roaming, "Telegram Desktop", "tdata", "user_data*")
+        for user_data in glob.glob(telegram_data):
+            telegram_paths.extend([
+                os.path.join(user_data, "cache"),
+                os.path.join(user_data, "media_cache"),
+            ])
+
+    classic_teams = os.path.join(roaming, "Microsoft", "Teams") if roaming else None
+    teams_paths: List[Optional[str]] = []
+    for folder in ("Cache", "blob_storage", "Code Cache", "GPUCache", "IndexedDB", "Local Storage", "tmp"):
+        teams_paths.append(os.path.join(classic_teams, folder) if classic_teams else None)
+    teams_paths.append(
+        os.path.join(
+            local,
+            "Packages",
+            "MSTeams_8wekyb3d8bbwe",
+            "LocalCache",
+            "Microsoft",
+            "MSTeams",
+        ) if local else None
+    )
+
+    return {
+        "telegram": _existing_unique_paths(telegram_paths),
+        "teams": _existing_unique_paths(teams_paths),
+        "spotify": _existing_unique_paths([
+            os.path.join(roaming, "Spotify", "Browser", "Cache") if roaming else None,
+            os.path.join(roaming, "Spotify", "Code Cache") if roaming else None,
+            os.path.join(roaming, "Spotify", "GPUCache") if roaming else None,
+            os.path.join(local, "Spotify", "Storage") if local else None,
+            os.path.join(
+                local,
+                "Packages",
+                "SpotifyAB.SpotifyMusic_zpdnekdrzrea0",
+                "LocalCache",
+                "Spotify",
+                "Data",
+            ) if local else None,
+        ]),
+    }
+
 def get_all_adobe_paths(custom_path: Optional[str] = None) -> List[str]:
     all_paths = []
 

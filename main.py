@@ -9,6 +9,7 @@ from restore_window import RestoreWindow
 from utils import (
     BackupType,
     get_all_adobe_paths,
+    get_application_cache_paths,
     get_developer_cache_paths,
     get_launcher_cache_paths,
     is_admin,
@@ -63,6 +64,14 @@ class CacheCleanerApp:
         if enabled_browser_paths:
             path_groups["Browsers"] = enabled_browser_paths
 
+        application_paths = get_application_cache_paths()
+        selected_application_paths: List[str] = []
+        for application, enabled in options.get("applications", {}).items():
+            if enabled:
+                selected_application_paths.extend(application_paths.get(application, []))
+        if selected_application_paths:
+            path_groups["Applications"] = selected_application_paths
+
         launcher_paths = get_launcher_cache_paths()
         selected_launcher_paths: List[str] = []
         for launcher, enabled in options.get("launchers", {}).items():
@@ -110,6 +119,7 @@ class CacheCleanerApp:
             "Adobe": "Adobe",
             "Discord": "Discord",
             "Browsers": "Браузеры",
+            "Applications": "Приложения",
             "Launchers": "Игровые лаунчеры",
             "Developer": "Режим разработчика",
             "Recycle Bin": "Корзина",
@@ -203,6 +213,15 @@ class CacheCleanerApp:
             if backup_name:
                 message += f"\nБэкап сохранен: {backup_name}"
                 message += "\nНе забудьте удалить ненужный бэкап — он занимает место на диске."
+
+            deleted_backups, deleted_backup_bytes = self.backup_system.delete_expired_backups(
+                exclude_names={backup_name} if backup_name else set()
+            )
+            if deleted_backups:
+                message += (
+                    f"\nАвтоочистка удалила старых бэкапов: {deleted_backups}"
+                    f" ({self.cleanup_logic.format_size(deleted_backup_bytes)})"
+                )
 
             self.gui_builder.show_message("Готово", message)
         except Exception as error:

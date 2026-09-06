@@ -3,7 +3,7 @@ import os
 import shutil
 import sys
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -20,9 +20,71 @@ class BackupSystem:
             self.backup_dir = base_dir / "CacheCleaner" / "backups"
 
         self.backup_dir.mkdir(parents=True, exist_ok=True)
+        self.settings_file = self.backup_dir / "backup_settings.json"
+        self.auto_cleanup_days = self._load_auto_cleanup_days()
         self._migrate_legacy_backups()
         self.backup_history: List[BackupInfo] = []
         self.load_history()
+        self.delete_expired_backups()
+
+    def _load_auto_cleanup_days(self) -> int:
+        try:
+            with self.settings_file.open("r", encoding="utf-8") as file:
+                value = int(json.load(file).get("auto_cleanup_days", 0))
+                return value if value in {0, 7, 30, 90} else 0
+        except (OSError, ValueError, TypeError, AttributeError):
+            return 0
+
+    def set_auto_cleanup_days(self, days: int):
+        self.auto_cleanup_days = days if days in {0, 7, 30, 90} else 0
+        temporary_file = self.settings_file.with_suffix(".tmp")
+        with temporary_file.open("w", encoding="utf-8") as file:
+            json.dump({"auto_cleanup_days": self.auto_cleanup_days}, file, indent=2)
+        os.replace(temporary_file, self.settings_file)
+
+    @staticmethod
+    def _parse_timestamp(timestamp: str) -> Optional[datetime]:
+        for pattern in ("%Y%m%d_%H%M%S_%f", "%Y%m%d_%H%M%S"):
+            try:
+                return datetime.strptime(timestamp, pattern)
+            except ValueError:
+                continue
+        return None
+
+    def delete_expired_backups(self, exclude_names=None) -> Tuple[int, int]:
+        """Delete backups older than the persisted retention period."""
+        if not self.auto_cleanup_days:
+            return 0, 0
+
+        excluded = set(exclude_names or ())
+        cutoff = datetime.now() - timedelta(days=self.auto_cleanup_days)
+        deleted_names = set()
+        freed_bytes = 0
+
+        for backup in self.get_available_backups():
+            name = backup["name"]
+            created_at = self._parse_timestamp(backup["timestamp"])
+            if name in excluded or created_at is None or created_at >= cutoff:
+                continue
+            try:
+                for suffix in (".json", ".zip"):
+                    path = self.backup_dir / f"{name}{suffix}"
+                    if path.exists():
+                        freed_bytes += path.stat().st_size
+                        path.unlink()
+                deleted_names.add(name)
+            except (OSError, PermissionError):
+                continue
+
+        if deleted_names:
+            deleted_timestamps = {name.replace("backup_", "", 1) for name in deleted_names}
+            self.backup_history = [
+                backup for backup in self.backup_history
+                if backup.timestamp not in deleted_timestamps
+            ]
+            self.save_history()
+
+        return len(deleted_names), freed_bytes
 
     def _migrate_legacy_backups(self):
         """Copy backups made by older versions from their working directory."""
