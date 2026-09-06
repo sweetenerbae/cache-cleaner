@@ -24,6 +24,7 @@ logs/
 cache_backups/
 backups/
 backup_history.json
+statistics.json
 backup_*.json
 backup_*.zip
 

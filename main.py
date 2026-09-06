@@ -5,7 +5,9 @@ from typing import Callable, Dict, List, Tuple
 from backup_system import BackupSystem
 from cleanup_logic import CleanupLogic
 from gui_builder_v2 import GUIBuilder
+from process_guard import close_running_apps, find_running_apps
 from restore_window import RestoreWindow
+from statistics_store import StatisticsStore
 from utils import (
     BackupType,
     get_all_adobe_paths,
@@ -21,6 +23,7 @@ class CacheCleanerApp:
     def __init__(self):
         self.log_file = "cleanup_log.txt"
         self.backup_system = BackupSystem()
+        self.statistics = StatisticsStore(self.backup_system.backup_dir)
         self.cleanup_logic = CleanupLogic(logger=self.log)
         self.gui_builder = None
 
@@ -176,14 +179,21 @@ class CacheCleanerApp:
                         progress_callback(30, f"Бэкап создан: {backup_name}")
 
             total_freed = 0
+            freed_by_category: Dict[str, int] = {}
             self.cleanup_logic.reset_cleanup_stats()
             progress_callback(50, "Очистка файлов...")
 
-            for path in paths_to_clean:
-                total_freed += self.cleanup_logic.clear_directory(path)
+            for category, paths in path_groups.items():
+                category_freed = 0
+                for path in paths:
+                    category_freed += self.cleanup_logic.clear_directory(path)
+                freed_by_category[category] = category_freed
+                total_freed += category_freed
 
             if recycle_selected:
-                total_freed += self.cleanup_logic.empty_recycle_bin()
+                recycle_freed = self.cleanup_logic.empty_recycle_bin()
+                freed_by_category["Recycle Bin"] = recycle_freed
+                total_freed += recycle_freed
 
             progress_callback(90, "Проверяем результат...")
             remaining_results = self.cleanup_logic.preview_paths(paths_to_clean)
@@ -202,6 +212,15 @@ class CacheCleanerApp:
             )
 
             progress_callback(100, "Очистка завершена")
+
+            try:
+                self.statistics.record_cleanup(
+                    total_freed,
+                    self.cleanup_logic.deleted_files,
+                    freed_by_category,
+                )
+            except (OSError, ValueError, TypeError) as error:
+                self.log(f"STATISTICS ERROR: {error}")
 
             message = f"Очищено: {self.cleanup_logic.format_size(total_freed)}"
             message += f"\nОсталось: {self.cleanup_logic.format_size(remaining_total)}"
@@ -223,6 +242,7 @@ class CacheCleanerApp:
                     f" ({self.cleanup_logic.format_size(deleted_backup_bytes)})"
                 )
 
+            self.gui_builder.refresh_statistics()
             self.gui_builder.show_message("Готово", message)
         except Exception as error:
             self.gui_builder.show_message("Ошибка", f"Ошибка при очистке:\n{error}", True)
@@ -282,6 +302,9 @@ class CacheCleanerApp:
             cleanup_callback=self.perform_cleanup,
             restore_callback=self.open_restore_manager,
             scan_callback=self.perform_scan,
+            statistics_callback=self.statistics.snapshot,
+            running_apps_callback=find_running_apps,
+            close_apps_callback=close_running_apps,
         )
 
         root = self.gui_builder.setup_gui()

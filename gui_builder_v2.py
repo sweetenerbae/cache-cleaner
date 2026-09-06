@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox
 from typing import Callable, Dict, Optional
 
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 def resource_path(relative_path: str) -> str:
@@ -57,16 +57,28 @@ class GUIBuilder:
     }
     PAGE_META = {
         "overview": ("Обзор", "Состояние системы и быстрые сценарии очистки"),
+        "statistics": ("Статистика", "Результаты очистки и использование дискового пространства"),
         "system": ("Система", "Временные файлы Windows и защита данных"),
         "applications": ("Приложения", "Браузеры, мессенджеры и медиаприложения"),
         "games": ("Игры", "Безопасная очистка кэша игровых лаунчеров"),
         "developer": ("Разработчик", "Кэши менеджеров пакетов и инструментов сборки"),
     }
 
-    def __init__(self, cleanup_callback: Callable, restore_callback: Callable, scan_callback: Callable):
+    def __init__(
+        self,
+        cleanup_callback: Callable,
+        restore_callback: Callable,
+        scan_callback: Callable,
+        statistics_callback: Optional[Callable] = None,
+        running_apps_callback: Optional[Callable] = None,
+        close_apps_callback: Optional[Callable] = None,
+    ):
         self.cleanup_callback = cleanup_callback
         self.restore_callback = restore_callback
         self.scan_callback = scan_callback
+        self.statistics_callback = statistics_callback
+        self.running_apps_callback = running_apps_callback
+        self.close_apps_callback = close_apps_callback
         self.root: Optional[ctk.CTk] = None
         self.user_folder: Optional[str] = None
         self.is_busy = False
@@ -77,8 +89,10 @@ class GUIBuilder:
         self.nav_buttons = {}
         self.summary_pills = []
         self._summary_legend_height = 0
+        self.statistics_data: Dict = {}
         self.nav_labels = {
             "overview": "Обзор",
+            "statistics": "Статистика",
             "system": "Система",
             "applications": "Приложения",
             "games": "Игры",
@@ -224,13 +238,16 @@ class GUIBuilder:
         nav.grid_columnconfigure(0, weight=1)
         nav_items = [
             ("overview", "Обзор", "cache_cleaner_logo.png", True),
+            ("statistics", "Статистика", None, False),
             ("system", "Система", "brand-icons/windows.png", False),
             ("applications", "Приложения", "brand-icons/telegram.png", False),
             ("games", "Игры", "brand-icons/steam.png", False),
             ("developer", "Разработчик", "brand-icons/pypi.png", False),
         ]
         for row, (key, label, image_path, is_logo) in enumerate(nav_items):
-            image = self._asset_image(image_path, 22 if not is_logo else 24)
+            image = self._statistics_image(22) if key == "statistics" else self._asset_image(
+                image_path, 22 if not is_logo else 24
+            )
             button = ctk.CTkButton(
                 nav,
                 text=label,
@@ -238,7 +255,7 @@ class GUIBuilder:
                 compound="left",
                 anchor="w",
                 command=lambda page=key: self.show_page(page),
-                height=48,
+                height=44,
                 corner_radius=12,
                 fg_color="#101010",
                 hover_color="#292929",
@@ -247,7 +264,7 @@ class GUIBuilder:
                 text_color="#C8C8C8",
                 font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             )
-            button.grid(row=row, column=0, sticky="ew", pady=4)
+            button.grid(row=row, column=0, sticky="ew", pady=2)
             self.nav_buttons[key] = button
 
         backup_button = ctk.CTkButton(
@@ -257,7 +274,7 @@ class GUIBuilder:
             compound="left",
             anchor="w",
             command=self.restore_callback,
-            height=48,
+            height=44,
             corner_radius=12,
             fg_color="#101010",
             hover_color="#292929",
@@ -266,7 +283,7 @@ class GUIBuilder:
             text_color="#C8C8C8",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
         )
-        backup_button.grid(row=len(nav_items), column=0, sticky="ew", pady=4)
+        backup_button.grid(row=len(nav_items), column=0, sticky="ew", pady=2)
         self.nav_buttons["backups"] = backup_button
         self.control_widgets.append(backup_button)
 
@@ -309,11 +326,13 @@ class GUIBuilder:
 
     def _create_pages(self):
         self.pages["overview"] = self._create_page()
+        self.pages["statistics"] = self._create_page()
         self.pages["system"] = self._create_page()
         self.pages["applications"] = self._create_page()
         self.pages["games"] = self._create_page()
         self.pages["developer"] = self._create_page()
         self._build_overview(self.pages["overview"])
+        self._build_statistics_page(self.pages["statistics"])
         self._build_system_page(self.pages["system"])
         self._build_applications_page(self.pages["applications"])
         self._build_games_page(self.pages["games"])
@@ -407,6 +426,175 @@ class GUIBuilder:
         ]
         for index, data in enumerate(cards):
             self._overview_option(plan, index // 3, index % 3, *data)
+
+    def _build_statistics_page(self, page):
+        metrics = ctk.CTkFrame(page, fg_color="transparent")
+        metrics.grid(row=0, column=0, sticky="ew")
+        metrics.grid_columnconfigure((0, 1, 2, 3), weight=1, uniform="metric")
+        self.statistics_labels = {}
+        metric_data = [
+            ("today", "Очищено сегодня", "0 B", self.ACCENT),
+            ("total", "За всё время", "0 B", "#FF526C"),
+            ("files", "Удалено файлов", "0", "#C56CFF"),
+            ("backups", "Бэкапы", "0 B", self.GREEN),
+        ]
+        for column, (key, title, value, color) in enumerate(metric_data):
+            card = self._glass_card(metrics)
+            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 6, 0 if column == 3 else 6))
+            ctk.CTkFrame(card, width=4, height=38, fg_color=color, corner_radius=2).pack(
+                side="left", padx=(15, 10), pady=18
+            )
+            body = ctk.CTkFrame(card, fg_color="transparent")
+            body.pack(side="left", fill="both", expand=True, pady=13)
+            ctk.CTkLabel(
+                body, text=title, text_color=self.MUTED,
+                font=ctk.CTkFont(family="Segoe UI", size=9, weight="bold"),
+            ).pack(anchor="w")
+            label = ctk.CTkLabel(
+                body, text=value, text_color=self.TEXT,
+                font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            )
+            label.pack(anchor="w", pady=(2, 0))
+            self.statistics_labels[key] = label
+
+        content = ctk.CTkFrame(page, fg_color="transparent")
+        content.grid(row=1, column=0, sticky="nsew", pady=(14, 12))
+        content.grid_columnconfigure(0, weight=2)
+        content.grid_columnconfigure(1, weight=1)
+
+        history_card = self._glass_card(content)
+        history_card.grid(row=0, column=0, sticky="nsew", padx=(0, 7))
+        ctk.CTkLabel(
+            history_card, text="Динамика за 7 дней", text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+        ).pack(anchor="w", padx=20, pady=(18, 2))
+        ctk.CTkLabel(
+            history_card, text="Сколько места освобождено каждый день", text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+        ).pack(anchor="w", padx=20)
+        self.statistics_chart = tk.Canvas(
+            history_card, height=270, bg=self.SURFACE, highlightthickness=0
+        )
+        self.statistics_chart.pack(fill="both", expand=True, padx=14, pady=(8, 14))
+        self.statistics_chart.bind("<Configure>", self._draw_statistics_chart)
+
+        categories_card = self._glass_card(content)
+        categories_card.grid(row=0, column=1, sticky="nsew", padx=(7, 0))
+        ctk.CTkLabel(
+            categories_card, text="Самые объёмные", text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+        ).pack(anchor="w", padx=20, pady=(18, 2))
+        ctk.CTkLabel(
+            categories_card, text="Категории за всё время", text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=10),
+        ).pack(anchor="w", padx=20)
+        self.statistics_categories = ctk.CTkFrame(categories_card, fg_color="transparent")
+        self.statistics_categories.pack(fill="both", expand=True, padx=18, pady=14)
+
+        note = self._glass_card(page)
+        note.grid(row=2, column=0, sticky="ew")
+        ctk.CTkLabel(
+            note, text="●  Статистика хранится только на этом компьютере",
+            text_color=self.GREEN, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+        ).pack(side="left", padx=18, pady=15)
+        ctk.CTkLabel(
+            note, text="Никакой телеметрии и отправки данных",
+            text_color=self.MUTED, font=ctk.CTkFont(family="Segoe UI", size=10),
+        ).pack(side="right", padx=18, pady=15)
+        self.root.after_idle(self.refresh_statistics)
+
+    def refresh_statistics(self):
+        if not self.statistics_callback or not self.root:
+            return
+        if threading.current_thread() is not threading.main_thread():
+            self.root.after(0, self.refresh_statistics)
+            return
+        try:
+            data = self.statistics_callback() or {}
+        except (OSError, ValueError, TypeError):
+            data = {}
+        self.statistics_data = data
+        if not hasattr(self, "statistics_labels"):
+            return
+        self.statistics_labels["today"].configure(
+            text=self._format_size(int(data.get("today_cleaned_bytes", 0)))
+        )
+        self.statistics_labels["total"].configure(
+            text=self._format_size(int(data.get("total_cleaned_bytes", 0)))
+        )
+        self.statistics_labels["files"].configure(
+            text=f"{int(data.get('total_deleted_files', 0)):,}".replace(",", " ")
+        )
+        backup_size = self._format_size(int(data.get("backup_bytes", 0)))
+        self.statistics_labels["backups"].configure(
+            text=f"{backup_size} · {int(data.get('backup_count', 0))} шт."
+        )
+        self._render_statistics_categories(data.get("categories", []))
+        self._draw_statistics_chart()
+
+    def _draw_statistics_chart(self, _event=None):
+        if not hasattr(self, "statistics_chart"):
+            return
+        canvas = self.statistics_chart
+        canvas.delete("all")
+        history = self.statistics_data.get("history", [])
+        width = max(420, canvas.winfo_width())
+        height = max(220, canvas.winfo_height())
+        left, right, top, bottom = 42, 18, 24, 38
+        chart_width = width - left - right
+        chart_height = height - top - bottom
+        canvas.create_line(left, top + chart_height, width - right, top + chart_height, fill="#353535")
+        if not history:
+            canvas.create_text(width / 2, height / 2, text="Статистика появится после первой очистки", fill=self.MUTED, font=("Segoe UI", 11))
+            return
+        maximum = max((int(item.get("cleaned_bytes", 0)) for item in history), default=0)
+        maximum = max(maximum, 1)
+        slot = chart_width / max(len(history), 1)
+        bar_width = min(48, slot * .56)
+        for index, item in enumerate(history):
+            value = int(item.get("cleaned_bytes", 0))
+            bar_height = (value / maximum) * (chart_height - 26) if value else 3
+            x = left + slot * index + slot / 2
+            y0 = top + chart_height - bar_height
+            canvas.create_rectangle(
+                x - bar_width / 2, y0, x + bar_width / 2, top + chart_height,
+                fill=self.ACCENT if value else "#343434", outline="",
+            )
+            if value:
+                canvas.create_text(x, max(10, y0 - 10), text=self._format_size(value), fill=self.TEXT, font=("Segoe UI", 8, "bold"))
+            canvas.create_text(x, height - 17, text=item.get("label", ""), fill=self.MUTED, font=("Segoe UI", 8))
+
+    def _render_statistics_categories(self, categories):
+        for child in self.statistics_categories.winfo_children():
+            child.destroy()
+        if not categories:
+            ctk.CTkLabel(
+                self.statistics_categories,
+                text="Пока нет данных\nЗапустите первую очистку",
+                justify="left", text_color=self.MUTED,
+                font=ctk.CTkFont(family="Segoe UI", size=11),
+            ).pack(anchor="w", pady=12)
+            return
+        maximum = max(int(item.get("cleaned_bytes", 0)) for item in categories) or 1
+        for item in categories:
+            name = item.get("name", "")
+            size = int(item.get("cleaned_bytes", 0))
+            row = ctk.CTkFrame(self.statistics_categories, fg_color="transparent")
+            row.pack(fill="x", pady=7)
+            ctk.CTkLabel(
+                row, text=self.CATEGORY_LABELS.get(name, name), text_color=self.TEXT,
+                font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            ).pack(anchor="w")
+            ctk.CTkLabel(
+                row, text=self._format_size(size), text_color=self.MUTED,
+                font=ctk.CTkFont(family="Segoe UI", size=9),
+            ).pack(anchor="e")
+            progress = ctk.CTkProgressBar(
+                row, height=5, corner_radius=3, fg_color="#303030",
+                progress_color=self.CHART_COLORS.get(name, self.ACCENT),
+            )
+            progress.pack(fill="x", pady=(3, 0))
+            progress.set(size / maximum)
 
     def _build_system_page(self, page):
         intro = self._section_intro(page, "Безопасная системная очистка", "Выберите только те данные, которые хотите удалить.")
@@ -550,6 +738,8 @@ class GUIBuilder:
         if page_name not in self.pages:
             return
         self._sync_master_vars()
+        if page_name == "statistics":
+            self.refresh_statistics()
         self.current_page = page_name
         for name, page in self.pages.items():
             if name == page_name:
@@ -696,6 +886,28 @@ class GUIBuilder:
 
     def _brand_image(self, name: str, size: int = 22):
         return self._asset_image(f"brand-icons/{name}.png", size)
+
+    def _statistics_image(self, size: int = 22):
+        key = ("statistics-icon", size)
+        if key not in self.brand_images:
+            scale = 3
+            source = Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(source)
+            color = (255, 234, 0, 255)
+            gap = max(2, size * scale // 12)
+            bar_width = max(4, size * scale // 7)
+            heights = (.38, .68, .92)
+            x = gap * 2
+            baseline = size * scale - gap * 2
+            for ratio in heights:
+                height = int((size * scale - gap * 4) * ratio)
+                draw.rounded_rectangle(
+                    (x, baseline - height, x + bar_width, baseline),
+                    radius=max(2, bar_width // 3), fill=color,
+                )
+                x += bar_width + gap
+            self.brand_images[key] = ctk.CTkImage(source, source, size=(size, size))
+        return self.brand_images[key]
 
     def _draw_donut(self, category_totals: Dict[str, int]):
         self.chart.delete("all")
@@ -893,7 +1105,109 @@ class GUIBuilder:
             )
             if not confirmed:
                 return
+        if self.running_apps_callback:
+            try:
+                running_apps = self.running_apps_callback(options) or []
+            except (OSError, ValueError, TypeError):
+                running_apps = []
+            if running_apps:
+                action = self._ask_running_apps(running_apps)
+                if action == "cancel":
+                    return
+                if action == "close" and self.close_apps_callback:
+                    try:
+                        failed = self.close_apps_callback(running_apps) or []
+                    except (OSError, ValueError, TypeError):
+                        failed = [app.get("name", "Приложение") for app in running_apps]
+                    if failed:
+                        messagebox.showwarning(
+                            "Не все приложения закрыты",
+                            "Не удалось закрыть: " + ", ".join(failed) +
+                            ".\nЗанятые файлы будут безопасно пропущены.",
+                            parent=self.root,
+                        )
         self._run_background_task(self.cleanup_callback, options, "Подготовка к очистке...")
+
+    def _ask_running_apps(self, apps):
+        result = {"action": "cancel"}
+        window = ctk.CTkToplevel(self.root, fg_color=self.BG)
+        window.title("Открытые приложения")
+        window.geometry("620x560")
+        window.minsize(560, 480)
+        window.transient(self.root)
+        window.grab_set()
+        window.grid_columnconfigure(0, weight=1)
+        window.grid_rowconfigure(1, weight=1)
+
+        header = ctk.CTkFrame(window, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=26, pady=(24, 12))
+        ctk.CTkLabel(
+            header, text="Некоторые приложения открыты", text_color=self.TEXT,
+            font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            header,
+            text="Закройте их, чтобы освободить больше места и уменьшить число пропущенных файлов.",
+            wraplength=550, justify="left", text_color=self.MUTED,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+        ).pack(anchor="w", pady=(5, 0))
+
+        app_list = ctk.CTkScrollableFrame(
+            window, fg_color=self.SURFACE, corner_radius=18,
+            border_width=1, border_color=self.BORDER,
+        )
+        app_list.grid(row=1, column=0, sticky="nsew", padx=24, pady=6)
+        app_list.grid_columnconfigure(0, weight=1)
+        for row, app in enumerate(apps):
+            card = ctk.CTkFrame(app_list, fg_color=self.SURFACE_ALT, corner_radius=13)
+            card.grid(row=row, column=0, sticky="ew", padx=5, pady=5)
+            card.grid_columnconfigure(1, weight=1)
+            ctk.CTkLabel(
+                card, text="", image=self._brand_image(app.get("icon", "backup"), 34), width=48,
+            ).grid(row=0, column=0, rowspan=2, padx=(12, 5), pady=11)
+            ctk.CTkLabel(
+                card, text=app.get("name", "Приложение"), text_color=self.TEXT,
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            ).grid(row=0, column=1, sticky="sw", pady=(10, 0))
+            process_count = len(app.get("pids", []))
+            ctk.CTkLabel(
+                card, text=f"Запущено процессов: {process_count}", text_color=self.MUTED,
+                font=ctk.CTkFont(family="Segoe UI", size=9),
+            ).grid(row=1, column=1, sticky="nw", pady=(2, 10))
+
+        warning = ctk.CTkLabel(
+            window,
+            text="Перед закрытием сохраните вкладки, сообщения и несохранённые данные.",
+            text_color=self.AMBER, font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+        )
+        warning.grid(row=2, column=0, sticky="w", padx=28, pady=(8, 2))
+
+        actions = ctk.CTkFrame(window, fg_color="transparent")
+        actions.grid(row=3, column=0, sticky="ew", padx=24, pady=(10, 22))
+        actions.grid_columnconfigure(0, weight=1)
+
+        def finish(action):
+            result["action"] = action
+            window.destroy()
+
+        ctk.CTkButton(
+            actions, text="Отмена", command=lambda: finish("cancel"), width=92, height=42,
+            fg_color="transparent", hover_color=self.SURFACE_RAISED,
+            border_width=1, border_color=self.BORDER, corner_radius=12,
+        ).grid(row=0, column=1, padx=(8, 0))
+        ctk.CTkButton(
+            actions, text="Продолжить", command=lambda: finish("continue"), width=120, height=42,
+            fg_color=self.SURFACE_RAISED, hover_color="#303030",
+            border_width=1, border_color=self.BORDER, corner_radius=12,
+        ).grid(row=0, column=2, padx=8)
+        ctk.CTkButton(
+            actions, text="Закрыть и очистить", command=lambda: finish("close"), width=174, height=44,
+            fg_color=self.ACCENT, hover_color=self.ACCENT_HOVER, text_color="#090909",
+            corner_radius=12, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+        ).grid(row=0, column=3)
+        window.protocol("WM_DELETE_WINDOW", lambda: finish("cancel"))
+        self.root.wait_window(window)
+        return result["action"]
 
     def _on_scan(self):
         options = self._build_options()

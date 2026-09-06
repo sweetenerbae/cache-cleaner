@@ -22,6 +22,7 @@ class CleanupLogic:
         self.developer_paths = get_developer_cache_paths()
         self.skipped_files = 0
         self.skipped_bytes = 0
+        self.deleted_files = 0
         runtime_dir = getattr(sys, "_MEIPASS", None)
         self.protected_paths = [os.path.normcase(os.path.abspath(runtime_dir))] if runtime_dir else []
 
@@ -42,6 +43,7 @@ class CleanupLogic:
     def reset_cleanup_stats(self):
         self.skipped_files = 0
         self.skipped_bytes = 0
+        self.deleted_files = 0
 
     def _is_protected_path(self, path: str) -> bool:
         normalized = os.path.normcase(os.path.abspath(path))
@@ -92,6 +94,7 @@ class CleanupLogic:
                         continue
                     try:
                         os.remove(file_path)
+                        self.deleted_files += 1
                     except (PermissionError, OSError):
                         skipped_here += 1
                         self.skipped_files += 1
@@ -184,12 +187,20 @@ class CleanupLogic:
     def empty_recycle_bin(self) -> int:
         """Empty the Recycle Bin silently after confirmation in the UI."""
         size_before = self.recycle_bin_size()
+        info_before = SHQUERYRBINFO()
+        info_before.cbSize = ctypes.sizeof(info_before)
+        if ctypes.windll.shell32.SHQueryRecycleBinW(None, ctypes.byref(info_before)) == 0:
+            recycle_items = max(0, int(info_before.i64NumItems))
+        else:
+            recycle_items = 0
         flags = 0x00000001 | 0x00000002 | 0x00000004
         result = ctypes.windll.shell32.SHEmptyRecycleBinW(None, None, flags)
         if result not in (0, -2147418111):  # S_OK or user-cancel style result
             self.log(f"Recycle Bin cleanup returned code: {result}")
         size_after = self.recycle_bin_size()
         freed = max(0, size_before - size_after)
+        if freed > 0:
+            self.deleted_files += recycle_items
         self.log(f"Recycle Bin | Freed: {self.format_size(freed)}")
         return freed
 

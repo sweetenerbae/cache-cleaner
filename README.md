@@ -31,11 +31,18 @@
   **Cleanup result**
 
   ![Cache Cleaner cleanup result](docs/images/cache-cleaner-cleanup-result.png)
+
+  **Cleanup statistics**
+
+  ![Cache Cleaner cleanup statistics](docs/images/cache-cleaner-statistics.png)
 </details>
 
 ## Features
 
 - Scan selected locations before deleting anything
+- Detect selected applications that are still running and offer to close them before cleanup
+- Track cleaned space and deleted files locally, with a seven-day chart and top categories
+- Show the current disk space occupied by compressed backups
 - Live donut chart with adaptive category capsules, refreshed after cleanup
 - Clean Windows temporary files
 - Clean Adobe, Discord, Telegram, Teams, Spotify, browser, and game-launcher caches
@@ -123,6 +130,8 @@ main.py              Application entry point
 gui_builder_v2.py    Sidebar interface, presets, and donut dashboard
 gui_builder.py       Previous interface kept for reference
 cleanup_logic.py     Scanning and cleanup logic
+statistics_store.py  Local cleanup history and dashboard metrics
+process_guard.py     Running-application detection and closing
 backup_system.py     Backup creation and restoration
 restore_window.py    Backup manager interface
 utils.py             Windows paths and shared data models
