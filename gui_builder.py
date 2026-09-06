@@ -3,7 +3,7 @@ import sys
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, font as tkfont, messagebox
 from typing import Callable, Dict, Optional
 
 import customtkinter as ctk
@@ -61,6 +61,8 @@ class GUIBuilder:
         self.last_scan_total = 0
         self.last_scan_categories: Dict[str, int] = {}
         self.brand_images: Dict[tuple, ctk.CTkImage] = {}
+        self.legend_pills = []
+        self._legend_layout_height = 0
 
     def setup_gui(self) -> ctk.CTk:
         ctk.set_appearance_mode("dark")
@@ -397,7 +399,7 @@ class GUIBuilder:
 
         self.legend = ctk.CTkFrame(panel, fg_color="transparent")
         self.legend.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 8))
-        self.legend.grid_columnconfigure((0, 1), weight=1, uniform="legend")
+        self.legend.bind("<Configure>", self._layout_legend_pills)
         self._render_legend({})
 
         status_card = ctk.CTkFrame(panel, fg_color="#171B21", corner_radius=12)
@@ -692,11 +694,14 @@ class GUIBuilder:
     def _render_legend(self, category_totals: Dict[str, int]):
         for child in self.legend.winfo_children():
             child.destroy()
+        self.legend_pills = []
 
         values = category_totals or {"Windows": 0, "Adobe": 0, "Browsers": 0, "Launchers": 0}
-        for index, (category, size) in enumerate(values.items()):
-            row = index // 2
-            column = index % 2
+        legend_font = tkfont.Font(root=self.root, family="Segoe UI", size=11, weight="bold")
+        for category, size in values.items():
+            label = self.CATEGORY_LABELS.get(category, category)
+            value = self._format_size(size) if category_totals else label
+            display_text = f"{label}: {value}" if category_totals else value
             item = ctk.CTkFrame(
                 self.legend,
                 height=34,
@@ -705,8 +710,8 @@ class GUIBuilder:
                 border_width=1,
                 border_color="#252B34",
             )
-            item.grid(row=row, column=column, sticky="ew", padx=4, pady=4)
-            item.grid_propagate(False)
+            item.pack_propagate(False)
+            item.flow_width = max(104, legend_font.measure(display_text) + 48)
             ctk.CTkLabel(
                 item,
                 text="●",
@@ -714,14 +719,43 @@ class GUIBuilder:
                 width=18,
                 font=ctk.CTkFont(family="Segoe UI", size=12),
             ).pack(side="left", padx=(9, 2))
-            label = self.CATEGORY_LABELS.get(category, category)
-            value = self._format_size(size) if category_totals else label
             ctk.CTkLabel(
                 item,
-                text=f"{label}: {value}" if category_totals else value,
+                text=display_text,
                 text_color="#C8D0DC",
                 font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
-            ).pack(side="left")
+            ).pack(side="left", padx=(0, 10))
+            self.legend_pills.append(item)
+
+        self.legend.after_idle(self._layout_legend_pills)
+
+    def _layout_legend_pills(self, _event=None):
+        if not self.legend_pills:
+            return
+
+        available_width = self.legend.winfo_width()
+        if available_width <= 1:
+            self.legend.after(20, self._layout_legend_pills)
+            return
+
+        gap = 7
+        pill_height = 34
+        x = 0
+        y = 0
+        for pill in self.legend_pills:
+            requested_width = pill.flow_width
+            pill_width = min(requested_width, available_width)
+            if x and x + pill_width > available_width:
+                x = 0
+                y += pill_height + gap
+            pill.configure(width=pill_width, height=pill_height)
+            pill.place(x=x, y=y)
+            x += pill_width + gap
+
+        required_height = y + pill_height
+        if required_height != self._legend_layout_height:
+            self._legend_layout_height = required_height
+            self.legend.configure(height=required_height)
 
     @staticmethod
     def _format_size(size_bytes: int) -> str:
