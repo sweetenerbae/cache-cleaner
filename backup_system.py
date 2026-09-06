@@ -88,7 +88,13 @@ class BackupSystem:
 
         unique_files = list(dict.fromkeys(os.path.normpath(path) for path in files_to_backup))
         try:
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+            with zipfile.ZipFile(
+                zip_path,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=6,
+                allowZip64=True,
+            ) as archive:
                 for index, file_path in enumerate(unique_files):
                     try:
                         if not os.path.isfile(file_path):
@@ -109,6 +115,10 @@ class BackupSystem:
             if not files_info:
                 zip_path.unlink(missing_ok=True)
                 return None
+
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                if any(item.compress_type != zipfile.ZIP_DEFLATED for item in archive.infolist()):
+                    raise zipfile.BadZipFile("Некоторые файлы не были сжаты")
 
             backup_info = BackupInfo(
                 timestamp=timestamp,
@@ -135,14 +145,25 @@ class BackupSystem:
             try:
                 with backup_file.open("r", encoding="utf-8") as file:
                     data = json.load(file)
+                archive_path = self.backup_dir / f"{backup_file.stem}.zip"
+                archive_exists = archive_path.exists()
+                archive_size = archive_path.stat().st_size if archive_exists else 0
+                total_size = int(data["total_size"])
+                saved_percent = (
+                    max(0, round((1 - archive_size / total_size) * 100))
+                    if total_size > 0 and archive_exists
+                    else 0
+                )
                 backups.append(
                     {
                         "name": backup_file.stem,
                         "timestamp": data["timestamp"],
                         "file_count": int(data["file_count"]),
-                        "total_size": int(data["total_size"]),
+                        "total_size": total_size,
                         "description": data.get("description", ""),
-                        "archive_exists": (self.backup_dir / f"{backup_file.stem}.zip").exists(),
+                        "archive_exists": archive_exists,
+                        "archive_size": archive_size,
+                        "saved_percent": saved_percent,
                     }
                 )
             except (OSError, ValueError, KeyError, TypeError):

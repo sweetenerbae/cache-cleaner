@@ -167,6 +167,7 @@ class CacheCleanerApp:
                 )
             if backup_name:
                 message += f"\nБэкап сохранен: {backup_name}"
+                message += "\nНе забудьте удалить ненужный бэкап — он занимает место на диске."
 
             self.gui_builder.show_message("Готово", message)
         except Exception as error:
