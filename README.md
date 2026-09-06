@@ -35,17 +35,20 @@
 
 ## Features
 
-- Scan cache before deleting anything
-- Live donut chart grouped by cache category
+- Scan selected locations before deleting anything
+- Live donut chart grouped by category and refreshed after cleanup
 - Clean Windows temporary files
 - Clean Adobe, Discord, browser, and game-launcher caches
 - Optional developer mode for pip, npm, pnpm, Yarn, Gradle, and NuGet caches
 - Scan and empty the Windows Recycle Bin with a separate confirmation
 - Support Chrome, Firefox, Edge, Brave, and Yandex Browser
-- Create ZIP backups before cleanup and restore them later
+- Official brand icons embedded into the application
+- Create compressed ZIP backups and verify their integrity before cleanup
+- Restore a backup or select and delete several old backups at once
+- Remind the user when old backups continue to occupy disk space
 - Show the exact cleaned and remaining size
 - Report files that Windows or running applications have locked
-- Responsive dark interface
+- Responsive dark interface with scrolling on compact windows
 
 ## Quick start
 
@@ -56,7 +59,7 @@
 
 Python is not required for the ready-to-use EXE. Windows SmartScreen may display a warning because the executable is not code-signed.
 
-> Close browsers, Discord, and Adobe applications before cleaning. Files currently used by Windows or another application are safely skipped.
+> Close browsers, Discord, Adobe applications, and selected game launchers before cleaning. Files currently used by Windows or another application are safely skipped.
 
 ## What is cleaned
 
@@ -72,15 +75,21 @@ Python is not required for the ready-to-use EXE. Windows SmartScreen may display
 
 Game installations, source code, `node_modules`, virtual environments, and project build folders are not selected. Developer caches may need to be downloaded again on the next build.
 
+The Recycle Bin and game-launcher cleanup options are disabled by default. Developer cache choices are inactive until **Developer mode** is enabled. Recycle Bin contents cannot be included in a ZIP backup and are removed only after a separate confirmation.
+
 ## Backups and privacy
 
-When backup protection is enabled, Cache Cleaner creates a ZIP archive before deletion. Backups are stored locally in:
+When backup protection is enabled, Cache Cleaner creates a compressed ZIP archive before deletion and verifies that its entries use ZIP compression. Backups are stored locally in:
 
 ```text
 %LOCALAPPDATA%\CacheCleaner\backups
 ```
 
 Runtime logs and backup files are excluded from Git. They are not uploaded to this repository by normal commits.
+
+The backup center displays the original and compressed sizes. It supports restoring one backup and selecting multiple backups for quick deletion. Cache Cleaner reminds you after cleanup when a newly created backup is still taking up disk space.
+
+Cache Cleaner does not collect telemetry or upload scanned paths, logs, or backups. All scanning, cleanup, and recovery operations run locally.
 
 ## Run from source
 
@@ -112,6 +121,7 @@ cleanup_logic.py     Scanning and cleanup logic
 backup_system.py     Backup creation and restoration
 restore_window.py    Backup manager interface
 utils.py             Windows paths and shared data models
+assets/brand-icons   Embedded application and browser icons
 ```
 
 ## Author
