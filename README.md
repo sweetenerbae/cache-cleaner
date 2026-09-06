@@ -49,7 +49,9 @@
 - Remind the user when old backups continue to occupy disk space
 - Show the exact cleaned and remaining size
 - Report files that Windows or running applications have locked
-- Responsive dark interface with scrolling on compact windows
+- Graphite liquid-glass interface with sidebar navigation and large application icons
+- Quick cleanup presets for everyday, gaming, and developer scenarios
+- Responsive layout with a compact sidebar and scrolling on smaller windows
 
 ## Quick start
 
@@ -118,7 +120,8 @@ It builds the application separately, waits if Cache Cleaner is still running, a
 
 ```text
 main.py              Application entry point
-gui_builder.py       Main interface and donut chart
+gui_builder_v2.py    Sidebar interface, presets, and donut dashboard
+gui_builder.py       Previous interface kept for reference
 cleanup_logic.py     Scanning and cleanup logic
 backup_system.py     Backup creation and restoration
 restore_window.py    Backup manager interface

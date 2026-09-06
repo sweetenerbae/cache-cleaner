@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Tuple
 
 from backup_system import BackupSystem
 from cleanup_logic import CleanupLogic
-from gui_builder import GUIBuilder
+from gui_builder_v2 import GUIBuilder
 from restore_window import RestoreWindow
 from utils import (
     BackupType,
